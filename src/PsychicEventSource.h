@@ -30,7 +30,7 @@ class PsychicEventSourceResponse;
 class PsychicEventSourceClient;
 class PsychicResponse;
 
-typedef std::function<void(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
+typedef void (*PsychicEventSourceClientCallback)(PsychicEventSourceClient* client);
 
 class PsychicEventSourceClient : public PsychicClient {
   friend PsychicEventSource;
@@ -77,6 +77,6 @@ class PsychicEventSourceResponse: public PsychicResponse {
     virtual esp_err_t send() override;
 };
 
-// String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect);
+std::string generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect);
 
 #endif /* PsychicEventSource_H_ */

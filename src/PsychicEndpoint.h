@@ -15,8 +15,7 @@ class PsychicEndpoint
 
   private:
     PsychicHttpServer *_server;
-    // String _uri;
-    const char* _uri;
+    const char *_uri;
     http_method _method;
     PsychicHandler *_handler;
 
@@ -30,8 +29,7 @@ class PsychicEndpoint
     PsychicEndpoint* setFilter(PsychicRequestFilterFunction fn);
     PsychicEndpoint* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");
 
-    // String uri();
-    char* uri();
+    const char *uri();
 
     static esp_err_t requestCallback(httpd_req_t *req);
 };

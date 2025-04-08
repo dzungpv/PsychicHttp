@@ -1,160 +1,227 @@
 #include "PsychicFileResponse.h"
 #include "PsychicResponse.h"
 #include "PsychicRequest.h"
+#include "esp_log.h"
 
+PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, const std::string &path, const std::string &contentType, bool download)
+    : PsychicResponse(request)
+{
 
-// PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path, const String& contentType, bool download)
-PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const char* path, const char* contentType, bool download)
- : PsychicResponse(request) {
-  //_code = 200;
-  String _path(path);
+  std::string _path = path;
 
-  if(!download && !fs.exists(_path) && fs.exists(_path+".gz")){
-    _path = _path+".gz";
+  // Try gzip if requested file doesn't exist and gzip version exists
+  if (!download && access(_path.c_str(), F_OK) != 0 && access((_path + ".gz").c_str(), F_OK) == 0)
+  {
+    _path += ".gz";
     addHeader("Content-Encoding", "gzip");
   }
 
-  _content = fs.open(_path, "r");
-  _contentLength = _content.size();
+  // Open the file with fopen
+  _content = fopen(_path.c_str(), "r");
+  if (!_content)
+  {
+    // handle file open error here
+    return;
+  }
 
-  if(contentType == "")
+  // Determine file size
+  fseek(_content, 0, SEEK_END);
+  _contentLength = ftell(_content);
+  fseek(_content, 0, SEEK_SET);
+
+  // Detect content type if not explicitly set
+  if (contentType.empty())
     _setContentType(path);
   else
     setContentType(contentType.c_str());
 
-  int filenameStart = path.lastIndexOf('/') + 1;
-  char buf[26+path.length()-filenameStart];
-  char* filename = (char*)path.c_str() + filenameStart;
+  // Extract filename from path
+  size_t filenameStart = path.find_last_of('/');
+  if (filenameStart == std::string::npos)
+    filenameStart = 0;
+  else
+    filenameStart += 1;
 
-  if(download) {
-    // set filename and force download
-    snprintf(buf, sizeof (buf), "attachment; filename=\"%s\"", filename);
-  } else {
-    // set filename and force rendering
-    snprintf(buf, sizeof (buf), "inline; filename=\"%s\"", filename);
+  const char *filename = path.c_str() + filenameStart;
+
+  // Build Content-Disposition header
+  char buf[256];
+  if (download)
+  {
+    snprintf(buf, sizeof(buf), "attachment; filename=\"%s\"", filename);
+  }
+  else
+  {
+    snprintf(buf, sizeof(buf), "inline; filename=\"%s\"", filename);
   }
   addHeader("Content-Disposition", buf);
 }
 
-PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, const String& path, const String& contentType, bool download)
- : PsychicResponse(request) {
-  String _path(path);
+PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FILE* content, const std::string &path, const std::string &contentType, bool download)
+    : PsychicResponse(request)
+{
 
-  if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
+  std::string _path = path;
+
+// Extract filename from content path (assumed to be provided separately)
+std::string filename = path;  // 👈 replace with actual filename or file path string
+
+// Add gzip header if needed
+if (!download &&
+    filename.size() >= 3 &&
+    filename.compare(filename.size() - 3, 3, ".gz") == 0 &&
+    (_path.size() < 3 || _path.compare(_path.size() - 3, 3, ".gz") != 0))
+{
     addHeader("Content-Encoding", "gzip");
-  }
+}
 
-  _content = content;
-  _contentLength = _content.size();
+// Open the file
+_content = fopen(path.c_str(), "r");
+if (!_content) {
+    // handle open failure
+    return;
+}
 
-  if(contentType == "")
+// Get file size
+fseek(_content, 0, SEEK_END);
+_contentLength = ftell(_content);
+fseek(_content, 0, SEEK_SET);
+
+// Set content type
+if (contentType.empty())
     _setContentType(path);
-  else
+else
     setContentType(contentType.c_str());
 
-  int filenameStart = path.lastIndexOf('/') + 1;
-  char buf[26+path.length()-filenameStart];
-  char* filename = (char*)path.c_str() + filenameStart;
+// Extract filename from path (for Content-Disposition)
+size_t filenameStart = path.find_last_of('/');
+if (filenameStart == std::string::npos)
+    filenameStart = 0;
+else
+    filenameStart += 1;
 
-  if(download) {
-    snprintf(buf, sizeof (buf), "attachment; filename=\"%s\"", filename);
-  } else {
-    snprintf(buf, sizeof (buf), "inline; filename=\"%s\"", filename);
-  }
-  addHeader("Content-Disposition", buf);
+const char* fname = path.c_str() + filenameStart;
+
+// Set Content-Disposition header
+char buf[256];
+if (download) {
+    snprintf(buf, sizeof(buf), "attachment; filename=\"%s\"", fname);
+} else {
+    snprintf(buf, sizeof(buf), "inline; filename=\"%s\"", fname);
+}
+addHeader("Content-Disposition", buf);
 }
 
 PsychicFileResponse::~PsychicFileResponse()
 {
-  if(_content)
-    _content.close();
+  if (_content)
+    fclose(_content);
 }
 
-void PsychicFileResponse::_setContentType(const String& path){
-  const char *_contentType;
-	
-  if (path.endsWith(".html")) _contentType = "text/html";
-  else if (path.endsWith(".htm")) _contentType = "text/html";
-  else if (path.endsWith(".css")) _contentType = "text/css";
-  else if (path.endsWith(".json")) _contentType = "application/json";
-  else if (path.endsWith(".js")) _contentType = "application/javascript";
-  else if (path.endsWith(".png")) _contentType = "image/png";
-  else if (path.endsWith(".gif")) _contentType = "image/gif";
-  else if (path.endsWith(".jpg")) _contentType = "image/jpeg";
-  else if (path.endsWith(".ico")) _contentType = "image/x-icon";
-  else if (path.endsWith(".svg")) _contentType = "image/svg+xml";
-  else if (path.endsWith(".eot")) _contentType = "font/eot";
-  else if (path.endsWith(".woff")) _contentType = "font/woff";
-  else if (path.endsWith(".woff2")) _contentType = "font/woff2";
-  else if (path.endsWith(".ttf")) _contentType = "font/ttf";
-  else if (path.endsWith(".xml")) _contentType = "text/xml";
-  else if (path.endsWith(".pdf")) _contentType = "application/pdf";
-  else if (path.endsWith(".zip")) _contentType = "application/zip";
-  else if(path.endsWith(".gz")) _contentType = "application/x-gzip";
-  else _contentType = "text/plain";
-  
-  setContentType(_contentType);
+bool endsWith(const std::string& value, const std::string& ending)
+{
+  if (ending.size() > value.size()) return false;
+  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+void PsychicFileResponse::_setContentType(const std::string &path)
+{
+  const char* contentType;
+
+  if (path.ends_with(".html") || path.ends_with(".htm"))
+    contentType = "text/html";
+  else if (path.ends_with(".css"))
+    contentType = "text/css";
+  else if (path.ends_with(".json"))
+    contentType = "application/json";
+  else if (path.ends_with(".js"))
+    contentType = "application/javascript";
+  else if (path.ends_with(".png"))
+    contentType = "image/png";
+  else if (path.ends_with(".gif"))
+    contentType = "image/gif";
+  else if (path.ends_with(".jpg"))
+    contentType = "image/jpeg";
+  else if (path.ends_with(".ico"))
+    contentType = "image/x-icon";
+  else if (path.ends_with(".svg"))
+    contentType = "image/svg+xml";
+  else if (path.ends_with(".eot"))
+    contentType = "font/eot";
+  else if (path.ends_with(".woff"))
+    contentType = "font/woff";
+  else if (path.ends_with(".woff2"))
+    contentType = "font/woff2";
+  else if (path.ends_with(".ttf"))
+    contentType = "font/ttf";
+  else if (path.ends_with(".xml"))
+    contentType = "text/xml";
+  else if (path.ends_with(".pdf"))
+    contentType = "application/pdf";
+  else if (path.ends_with(".zip"))
+    contentType = "application/zip";
+  else if (path.ends_with(".gz"))
+    contentType = "application/x-gzip";
+  else
+    contentType = "text/plain";
+
+  setContentType(contentType);
 }
 
 esp_err_t PsychicFileResponse::send()
 {
-  esp_err_t err = ESP_OK;
+    esp_err_t err = ESP_OK;
 
-  //just send small files directly
-  size_t size = getContentLength();
-  if (size < FILE_CHUNK_SIZE)
-  {
-    uint8_t *buffer = (uint8_t *)malloc(size);
-    if (buffer == NULL)
+    size_t size = getContentLength();
+
+    if (size < FILE_CHUNK_SIZE)
     {
-      /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
-      return ESP_FAIL;
-    }
-
-    size_t readSize = _content.readBytes((char *)buffer, size);
-
-    this->setContent(buffer, readSize);
-    err = PsychicResponse::send();
-    
-    free(buffer);
-  }
-  else
-  {
-    /* Retrieve the pointer to scratch buffer for temporary storage */
-    char *chunk = (char *)malloc(FILE_CHUNK_SIZE);
-    if (chunk == NULL)
-    {
-      /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
-      return ESP_FAIL;
-    }
-
-    this->sendHeaders();
-
-    size_t chunksize;
-    do {
-        /* Read file in chunks into the scratch buffer */
-        chunksize = _content.readBytes(chunk, FILE_CHUNK_SIZE);
-        if (chunksize > 0)
+        uint8_t *buffer = static_cast<uint8_t *>(malloc(size));
+        if (!buffer)
         {
-          err = this->sendChunk((uint8_t *)chunk, chunksize);
-          if (err != ESP_OK)
-            break;
+            httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+            return ESP_FAIL;
         }
 
-        /* Keep looping till the whole file is sent */
-    } while (chunksize != 0);
+        size_t readSize = fread(buffer, 1, size, _content);  // _content is assumed to be FILE*
 
-    //keep track of our memory
-    free(chunk);
+        this->setContent(buffer, readSize);
+        err = PsychicResponse::send();
 
-    if (err == ESP_OK)
-    {
-      ESP_LOGD(PH_TAG, "File sending complete");
-      this->finishChunking();
+        free(buffer);
     }
-  }
+    else
+    {
+        char *chunk = static_cast<char *>(malloc(FILE_CHUNK_SIZE));
+        if (!chunk)
+        {
+            httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+            return ESP_FAIL;
+        }
 
-  return err;
+        this->sendHeaders();
+
+        size_t chunksize;
+        do
+        {
+            chunksize = fread(chunk, 1, FILE_CHUNK_SIZE, _content);
+            if (chunksize > 0)
+            {
+                err = this->sendChunk(reinterpret_cast<uint8_t *>(chunk), chunksize);
+                if (err != ESP_OK)
+                    break;
+            }
+
+        } while (chunksize != 0 && !feof(_content));
+
+        free(chunk);
+
+        if (err == ESP_OK)
+        {
+            ESP_LOGD(PH_TAG, "File sending complete");
+            this->finishChunking();
+        }
+    }
+
+    return err;
 }

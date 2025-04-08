@@ -52,27 +52,25 @@ enum HTTPAuthMethod
   DIGEST_AUTH
 };
 
-char* urlDecode(const char *encoded);
+void urlDecode(const char* encoded, char* decoded, size_t buffer_size);
 
 class PsychicHttpServer;
 class PsychicRequest;
-class PsychicWebSocketRequest;
+// class PsychicWebSocketRequest;
 class PsychicClient;
 
-// //filter function definition
-// typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunction;
+// Filter function definition
+typedef bool (*PsychicRequestFilterFunction)(PsychicRequest *request);
 
-// //client connect callback
-// typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
+// Client connect callback
+typedef void (*PsychicClientCallback)(PsychicClient *client);
 
-// //callback definitions
-// typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
-// typedef std::function<esp_err_t(PsychicRequest *request, JsonVariant &json)> PsychicJsonRequestCallback;
+// // Callback definitions
+typedef esp_err_t (*PsychicHttpRequestCallback)(PsychicRequest *request);
+typedef esp_err_t (*PsychicJsonRequestCallback)(PsychicRequest *request, JsonVariant json);
 
 typedef bool (*PsychicRequestFilterFunction)(PsychicRequest *request);
 typedef void (*PsychicClientCallback)(PsychicClient *client);
-typedef esp_err_t (*PsychicHttpRequestCallback)(PsychicRequest *request);
-typedef esp_err_t (*PsychicJsonRequestCallback)(PsychicRequest *request, JsonVariant &json);
 
 struct HTTPHeader
 {
@@ -87,12 +85,7 @@ class DefaultHeaders
 public:
   DefaultHeaders() {}
 
-  // void addHeader(const String& field, const String& value)
-  // {
-  //   addHeader(field.c_str(), value.c_str());
-  // }
-
-  void addHeader(const char *field, const char *value)
+  void addHeader(const char * field, const char * value)
   {
     HTTPHeader header;
     if (field && value)
@@ -112,7 +105,7 @@ public:
     }
   }
 
-  const std::list<HTTPHeader> &getHeaders() { return _headers; }
+  const std::list<HTTPHeader>& getHeaders() const { return _headers; }
 
   // delete the copy constructor, singleton class
   DefaultHeaders(DefaultHeaders const &) = delete;

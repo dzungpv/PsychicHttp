@@ -6,17 +6,18 @@
 #include "PsychicClient.h"
 #include "PsychicWebParameter.h"
 #include "PsychicResponse.h"
+#include <string>
+#include <mbedtls/base64.h>
+#include <mbedtls/md5.h>
 
-typedef std::map<String, String> SessionData;
+typedef std::map<std::string, std::string> SessionData;
 
 enum Disposition { NONE, INLINE, ATTACHMENT, FORM_DATA};
 
 struct ContentDisposition {
   Disposition disposition;
-  // String filename;
-  // String name;
-  const char* filename;
-  const char* name;
+  std::string filename;
+  std::string name;
 };
 
 class PsychicRequest {
@@ -29,21 +30,17 @@ class PsychicRequest {
     PsychicClient *_client;
 
     http_method _method;
-    // String _uri;
-    // String _query;
-    // String _body;
-    const char* _uri;
-    const char* _query;
-    const char* _body;
-
+    const char *_uri;
+    std::string _query;
+    std::string _body;
 
     std::list<PsychicWebParameter*> _params;
 
-    void _addParams(const char* params, bool post);
+    void _addParams(const std::string& params, bool post);
     void _parseGETParams();
     void _parsePOSTParams();
 
-    const char* _extractParam(const char* authReq, const char* param, const char delimit);
+    std::string _extractParam(const std::string &authReq, const std::string &param, char delimit);
     const char* _getRandomHexString();
 
   public:
@@ -59,38 +56,38 @@ class PsychicRequest {
     bool isMultipart();
     esp_err_t loadBody();
 
-    const char* header(const char *name);
+    std::string header(const char *name);
     bool hasHeader(const char *name);
 
     static void freeSession(void *ctx);
     bool hasSessionKey(const char* key);
-    const char* getSessionKey(const char* key);
-    void setSessionKey(const char* key, const char* value);
+    const std::string getSessionKey(const std::string& key);
+    void setSessionKey(const std::string& key, const std::string& value);
 
     bool hasCookie(const char * key);
-    const char* getCookie(const char * key);
+    std::string getCookie(const char * key);
 
-    http_method method();       // returns the HTTP method used as enum value (eg. HTTP_GET)
-    const char* methodStr();   // returns the HTTP method used as a string (eg. "GET")
-    const char* path();        // returns the request path (eg /page?foo=bar returns "/page")
-    const char* uri();        // returns the full request uri (eg /page?foo=bar)
-    const char* query();      // returns the request query data (eg /page?foo=bar returns "foo=bar")
-    const char* host();        // returns the requested host (request to http://psychic.local/foo will return "psychic.local")
-    const char* contentType(); // returns the Content-Type header value
-    size_t contentLength();     // returns the Content-Length header value
-    const char* body();       // returns the body of the request
+    http_method method() const;       // returns the HTTP method used as enum value (eg. HTTP_GET)
+    std::string methodStr();   // returns the HTTP method used as a string (eg. "GET")
+    std::string path();        // returns the request path (eg /page?foo=bar returns "/page")
+    const char * uri() const;        // returns the full request uri (eg /page?foo=bar)
+    const std::string& query() const;      // returns the request query data (eg /page?foo=bar returns "foo=bar")
+    std::string  host();        // returns the requested host (request to http://psychic.local/foo will return "psychic.local")
+    std::string  contentType(); // returns the Content-Type header value
+    size_t contentLength() const;     // returns the Content-Length header value
+    const std::string& body();       // returns the body of the request
     const ContentDisposition getContentDisposition();
 
-    const char* queryString() { return query(); }  //compatability function.  same as query()
-    const char* url() { return uri(); }            //compatability function.  same as uri()
+    const std::string& queryString() { return query(); }  //compatability function.  same as query()
+    const char * url() { return uri(); }            //compatability function.  same as uri()
 
     void loadParams();
-    PsychicWebParameter * addParam(PsychicWebParameter *param);
-    PsychicWebParameter * addParam(const char* name, const char* value, bool decode = true, bool post = false);
+    PsychicWebParameter * addParam(const std::string& name, const std::string& value, bool decode, bool post);
+    PsychicWebParameter * addParam(PsychicWebParameter* param);
     bool hasParam(const char *key);
     PsychicWebParameter * getParam(const char *name);
 
-    const String getFilename();
+    const char* getFilename();
 
     bool authenticate(const char * username, const char * password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);
@@ -99,6 +96,7 @@ class PsychicRequest {
     esp_err_t reply(int code);
     esp_err_t reply(const char *content);
     esp_err_t reply(int code, const char *contentType, const char *content);
+
 };
 
 #endif // PsychicRequest_h

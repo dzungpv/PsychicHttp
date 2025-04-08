@@ -2,10 +2,10 @@
 #include "PsychicHttpServer.h"
 
 PsychicEndpoint::PsychicEndpoint() :
-  _server(NULL),
+  _server(nullptr),
   _uri(""),
   _method(HTTP_GET),
-  _handler(NULL)
+  _handler(nullptr)
 {
 }
 
@@ -13,14 +13,14 @@ PsychicEndpoint::PsychicEndpoint(PsychicHttpServer *server, http_method method, 
   _server(server),
   _uri(uri),
   _method(method),
-  _handler(NULL)
+  _handler(nullptr)
 {
 }
 
 PsychicEndpoint * PsychicEndpoint::setHandler(PsychicHandler *handler)
 {
   //clean up old / default handler
-  if (_handler != NULL)
+  if (_handler != nullptr)
     delete _handler;
 
   //get our new pointer
@@ -37,8 +37,7 @@ PsychicHandler * PsychicEndpoint::handler()
   return _handler;
 }
 
-// String PsychicEndpoint::uri() {
-char* PsychicEndpoint::uri() {
+const char* PsychicEndpoint::uri() {
   return _uri;
 }
 
@@ -61,7 +60,7 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
   PsychicRequest request(self->_server, req);
 
   //make sure we have a handler
-  if (handler != NULL)
+  if (handler != nullptr)
   {
     if (handler->filter(&request) && handler->canHandle(&request))
     {
