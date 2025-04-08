@@ -2,15 +2,14 @@
 #include "PsychicEndpoint.h"
 #include "PsychicHandler.h"
 #include "PsychicWebHandler.h"
-#include "esp_log.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebSocket.h"
 #include "PsychicJson.h"
-// #include "WiFi.h"
+#include "WiFi.h"
 
-PsychicHttpServer::PsychicHttpServer() //:
-  // _onOpen(NULL),
-  // _onClose(NULL)
+PsychicHttpServer::PsychicHttpServer() :
+  _onOpen(nullptr),
+  _onClose(nullptr)
 {
   maxRequestBodySize = MAX_REQUEST_BODY_SIZE;
   maxUploadSize = MAX_UPLOAD_SIZE;
@@ -52,7 +51,7 @@ PsychicHttpServer::~PsychicHttpServer()
     delete(handler);
   _handlers.clear();
 
-  // delete defaultEndpoint;
+  delete defaultEndpoint;
 }
 
 void PsychicHttpServer::destroy(void *ctx)
@@ -189,7 +188,7 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
   PsychicWebHandler *handler = new PsychicWebHandler();
   handler->onRequest(fn == nullptr ? PsychicHttpServer::defaultNotFoundHandler : fn);
 
-  this->defaultEndpoint->setHandler(handler); 
+  this->defaultEndpoint->setHandler(handler);
 }
 
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
@@ -233,7 +232,7 @@ void PsychicHttpServer::onOpen(PsychicClientCallback handler) {
 
 esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
 {
-  ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
+  ESP_LOGD(PH_TAG, "New client connected %d", sockfd);
 
   //get our global server reference
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
@@ -246,7 +245,7 @@ esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
     server->addClient(client);
   }
 
-  // user callback
+  //user callback
   if (server->_onOpen != nullptr)
     server->_onOpen(client);
 
@@ -259,13 +258,13 @@ void PsychicHttpServer::onClose(PsychicClientCallback handler) {
 
 void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 {
-  ESP_LOGI(PH_TAG, "Client disconnected %d", sockfd);
+  ESP_LOGD(PH_TAG, "Client disconnected %d", sockfd);
 
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
   //lookup our client
   PsychicClient *client = server->getClient(sockfd);
-  if (client != NULL)
+  if (client != nullptr)
   {
     //give our handlers a chance to handle a disconnect first
     for (PsychicEndpoint * endpoint : server->_endpoints)
@@ -275,7 +274,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
     }
 
     //do we have a callback attached?
-    if (server->_onClose != NULL)
+    if (server->_onClose != nullptr)
       server->_onClose(client);
 
     //remove it from our list
@@ -288,9 +287,9 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   close(sockfd);
 }
 
-PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, const char* path, const char* cache_control)
+PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
 {
-  PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, path, cache_control);
+  PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
   this->addHandler(handler);
 
   return handler;
@@ -325,35 +324,70 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList() {
   return _clients;
 }
 
-// bool ON_STA_FILTER(PsychicRequest *request) {
-//   return WiFi.localIP() == request->client()->localIP();
+bool ON_STA_FILTER(PsychicRequest *request) {
+  return WiFi.localIP() == request->client()->localIP();
+}
+
+bool ON_AP_FILTER(PsychicRequest *request) {
+  return WiFi.softAPIP() == request->client()->localIP();
+}
+
+// String urlDecode(const char* encoded)
+// {
+//   size_t length = strlen(encoded);
+//   char* decoded = (char*)malloc(length + 1);
+//   if (!decoded) {
+//     return "";
+//   }
+
+//   size_t i, j = 0;
+//   for (i = 0; i < length; ++i) {
+//       if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
+//           // Valid percent-encoded sequence
+//           int hex;
+//           sscanf(encoded + i + 1, "%2x", &hex);
+//           decoded[j++] = (char)hex;
+//           i += 2;  // Skip the two hexadecimal characters
+//       } else if (encoded[i] == '+') {
+//           // Convert '+' to space
+//           decoded[j++] = ' ';
+//       } else {
+//           // Copy other characters as they are
+//           decoded[j++] = encoded[i];
+//       }
+//   }
+
+//   decoded[j] = '\0';  // Null-terminate the decoded string
+
+//   String output(decoded);
+//   free(decoded);
+
+//   return output;
 // }
-
-// bool ON_AP_FILTER(PsychicRequest *request) {
-//   return WiFi.softAPIP() == request->client()->localIP();
-// }
-
-void urlDecode(const char* encoded, char* decoded, size_t buffer_size) {
-  if (!encoded || !decoded || buffer_size == 0) return;
-
+char* urlDecode(const char* encoded) {
   size_t length = strlen(encoded);
-  size_t j = 0;
-
-  for (size_t i = 0; i < length && j < buffer_size - 1; ++i) {
-      if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
-          // Valid percent-encoded sequence
-          int hex;
-          sscanf(encoded + i + 1, "%2x", &hex);
-          decoded[j++] = static_cast<char>(hex);
-          i += 2;  // Skip the two hexadecimal characters
-      } else if (encoded[i] == '+') {
-          // Convert '+' to space
-          decoded[j++] = ' ';
-      } else {
-          // Copy other characters as they are
-          decoded[j++] = encoded[i];
-      }
+  char* decoded = (char*)malloc(length + 1); // Allocate enough memory
+  if (!decoded) {
+    return nullptr; // Return NULL on allocation failure
   }
 
-  decoded[j] = '\0';  // Null-terminate the output string
+  size_t i, j = 0;
+  for (i = 0; i < length; ++i) {
+    if (encoded[i] == '%' && isxdigit((unsigned char)encoded[i + 1]) && isxdigit((unsigned char)encoded[i + 2])) {
+      // Valid percent-encoded sequence
+      int hex;
+      sscanf(encoded + i + 1, "%2x", &hex);
+      decoded[j++] = (char)hex;
+      i += 2; // Skip the two hexadecimal characters
+    } else if (encoded[i] == '+') {
+      // Convert '+' to space
+      decoded[j++] = ' ';
+    } else {
+      // Copy other characters as they are
+      decoded[j++] = encoded[i];
+    }
+  }
+
+  decoded[j] = '\0'; // Null-terminate the decoded string
+  return decoded; // Return the decoded string
 }
