@@ -1,4 +1,4 @@
-## This is WIP. Porting to ESP_IDF removing all Arduino dependencies.
+## This is a WIP. Porting to ESP_IDF removing all Arduino dependencies.
 
 # PsychicHttp - HTTP on your ESP 🧙🔮
 
