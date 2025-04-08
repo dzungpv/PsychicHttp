@@ -1,6 +1,7 @@
 #include "PsychicClient.h"
 #include "PsychicHttpServer.h"
 #include <lwip/sockets.h>
+#include "esp_log.h"
 
 PsychicClient::PsychicClient(httpd_handle_t server, int socket) :
   _server(server),
@@ -29,44 +30,52 @@ esp_err_t PsychicClient::close()
   return err;
 }
 
-IPAddress PsychicClient::localIP()
-{
-  IPAddress address(0,0,0,0);
+// Return type: ip4_addr_t from lwIP.
+ip4_addr_t PsychicClient::localIP() {
+  ip4_addr_t ip_addr;
+  ip4_addr_set_zero(&ip_addr);  // Initialize to 0.0.0.0
 
   char ipstr[INET6_ADDRSTRLEN];
-  struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+  struct sockaddr_in6 addr;   // Using IPv6 addressing
   socklen_t addr_size = sizeof(addr);
 
   if (getsockname(_socket, (struct sockaddr *)&addr, &addr_size) < 0) {
-    ESP_LOGE(PH_TAG, "Error getting client IP");
-    return address;
+      ESP_LOGE(PH_TAG, "Error getting client IP");
+      return ip_addr;
   }
 
-  // Convert to IPv4 string
-  inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr));
-  //ESP_LOGD(PH_TAG, "Client Local IP => %s", ipstr);
-  address.fromString(ipstr);
+  // Convert the last 32 bits of the IPv6 address to an IPv4 string.
+  // This is common when IPv4 is embedded in an IPv6-mapped address.
+  if (!inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr))) {
+      ESP_LOGE(PH_TAG, "inet_ntop failed");
+      return ip_addr;
+  }
 
-  return address;
+  // Convert the IPv4 string to an ip4_addr_t (in network byte order)
+  ip_addr.addr = ipaddr_addr(ipstr);
+  return ip_addr;
 }
 
-IPAddress PsychicClient::remoteIP()
-{
-  IPAddress address(0,0,0,0);
+ip4_addr_t PsychicClient::remoteIP() {
+  ip4_addr_t ip_addr;
+  ip4_addr_set_zero(&ip_addr);  // Initialize to 0.0.0.0
 
   char ipstr[INET6_ADDRSTRLEN];
-  struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+  struct sockaddr_in6 addr;   // Using IPv6 addressing
   socklen_t addr_size = sizeof(addr);
 
   if (getpeername(_socket, (struct sockaddr *)&addr, &addr_size) < 0) {
-    ESP_LOGE(PH_TAG, "Error getting client IP");
-    return address;
+      ESP_LOGE(PH_TAG, "Error getting remote IP");
+      return ip_addr;
   }
 
-  // Convert to IPv4 string
-  inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr));
-  //ESP_LOGD(PH_TAG, "Client Remote IP => %s", ipstr);
-  address.fromString(ipstr);
+  // Convert embedded IPv4 from IPv6 address.
+  if (!inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr))) {
+      ESP_LOGE(PH_TAG, "inet_ntop failed");
+      return ip_addr;
+  }
 
-  return address;
+  // Convert the string to an ip4_addr_t.
+  ip_addr.addr = ipaddr_addr(ipstr);
+  return ip_addr;
 }

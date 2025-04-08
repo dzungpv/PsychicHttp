@@ -18,14 +18,14 @@ class PsychicResponse
     const char * _body;
 
   public:
-    PsychicResponse(PsychicRequest *request);
+    explicit PsychicResponse(PsychicRequest *request);
     virtual ~PsychicResponse();
 
     void setCode(int code);
 
     void setContentType(const char *contentType);
     void setContentLength(int64_t contentLength) { _contentLength = contentLength; }
-    int64_t getContentLength(int64_t contentLength) { return _contentLength; }
+    int64_t getContentLength(int64_t contentLength) const { return _contentLength; }
 
     void addHeader(const char *field, const char *value);
 

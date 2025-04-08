@@ -3,6 +3,7 @@
 
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
+#include <string>
 
 class PsychicEndpoint;
 class PsychicHttpServer;
@@ -17,14 +18,17 @@ class PsychicHandler {
   protected:
     PsychicRequestFilterFunction _filter;
     PsychicHttpServer *_server;
-
-    String _username;
-    String _password;
+    
+    const char* _username;
+    const char* _password;
     HTTPAuthMethod _method;
-    String _realm;
-    String _authFailMsg;
-
-    String _subprotocol;
+    const char* _realm;
+    
+    // Message to display upon authentication failure.
+    const char* _authFailMsg;
+    
+    // Subprotocol string.
+    std::string _subprotocol;
 
     std::list<PsychicClient*> _clients;
 
@@ -41,7 +45,7 @@ class PsychicHandler {
 
     virtual bool isWebSocket() { return false; };
 
-    void setSubprotocol(const String& subprotocol);
+    void setSubprotocol(const std::string& subprotocol);
     const char* getSubprotocol() const;
 
     PsychicClient * checkForNewClient(PsychicClient *client);
@@ -55,7 +59,7 @@ class PsychicHandler {
     virtual void closeCallback(PsychicClient *client) {};
 
     bool hasClient(PsychicClient *client);
-    int count() { return _clients.size(); };
+    int count() const { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();
 
     //derived classes must implement these functions

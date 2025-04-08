@@ -8,26 +8,29 @@
 #include "PsychicFileResponse.h"
 
 class PsychicStaticFileHandler : public PsychicWebHandler {
-  using File = fs::File;
-  using FS = fs::FS;
+  // using File = fs::File;
+  // using FS = fs::FS;
   private:
     bool _getFile(PsychicRequest *request);
-    bool _fileExists(const String& path);
+    static size_t _getFileSize(FILE* f);
+    bool _fileExists(const std::string& path);
     uint8_t _countBits(const uint8_t value) const;
   protected:
-    FS _fs;
-    File _file;
-    String _filename;
-    String _uri;
-    String _path;
-    String _default_file;
-    String _cache_control;
-    String _last_modified;
+    // FS _fs;
+    std::string _uri;
+    std::string _path;
+    std::string _cache_control;
+    std::string _default_file;
+    std::string _last_modified;
+    FILE *_file;
+    std::string _filename;
+    
+    
     bool _isDir;
     bool _gzipFirst;
     uint8_t _gzipStats;
   public:
-    PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
+    PsychicStaticFileHandler(const char* uri, const char* path, const char* cache_control);
     bool canHandle(PsychicRequest *request) override;
     esp_err_t handleRequest(PsychicRequest *request) override;
     PsychicStaticFileHandler& setIsDir(bool isDir);

@@ -1,6 +1,8 @@
 #include "PsychicResponse.h"
 #include "PsychicRequest.h"
 #include <http_status.h>
+#include "esp_log.h"
+#include "urlencode.h"
 
 PsychicResponse::PsychicResponse(PsychicRequest *request) :
   _request(request),
@@ -37,38 +39,41 @@ void PsychicResponse::addHeader(const char *field, const char *value)
 
 void PsychicResponse::setCookie(const char *name, const char *value, unsigned long secondsFromNow, const char *extras)
 {
-  time_t now = time(nullptr);
+    time_t now = time(nullptr);
 
-  String output;
-  output = urlEncode(name) + "=" + urlEncode(value);
+    // Build the cookie value: URL-encode name and value
+    std::string output = urlEncode(name) + "=" + urlEncode(value);
 
-  //if current time isn't modern, default to using max age
-  if (now < 1700000000)
-    output += "; Max-Age=" + String(secondsFromNow);    
-  //otherwise, set an expiration date
-  else
-  {
-    time_t expirationTimestamp = now + secondsFromNow;
+    // If the current time is before a "modern" timestamp, use Max-Age
+    if (now < 1700000000) {
+        output += "; Max-Age=" + std::to_string(secondsFromNow);
+    }
+    // Otherwise, use an Expires date
+    else {
+        time_t expirationTimestamp = now + secondsFromNow;
+        struct tm tmInfo;
+        // Use thread-safe gmtime_r instead of gmtime
+        gmtime_r(&expirationTimestamp, &tmInfo);
+        char expires[30];
+        strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", &tmInfo);
+        output += "; Expires=" + std::string(expires);
+    }
 
-    // Convert the expiration timestamp to a formatted string for the "expires" attribute
-    struct tm* tmInfo = gmtime(&expirationTimestamp);
-    char expires[30];
-    strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", tmInfo);
-    output += "; Expires=" + String(expires);
-  }
+    // If any extras were provided, append them
+    if (extras && strlen(extras) > 0) {
+        output += "; " + std::string(extras);
+    }
 
-  //did we get any extras?
-  if (strlen(extras))
-    output += "; " + String(extras);
-
-  //okay, add it in.
-  addHeader("Set-Cookie", output.c_str());
+    // Finally, add the header to the response.
+    // Assume addHeader is a member function that takes a const char* key and value.
+    addHeader("Set-Cookie", output.c_str());
 }
 
 void PsychicResponse::setCode(int code)
 {
   _code = code;
 }
+
 
 void PsychicResponse::setContentType(const char *contentType)
 {

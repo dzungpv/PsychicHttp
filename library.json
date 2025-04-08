@@ -26,7 +26,6 @@
       ]
     }
   ],
-  "frameworks": "arduino",
   "platforms": "espressif32",
   "dependencies": [
     {

@@ -1,4 +1,5 @@
 #include "PsychicWebHandler.h"
+#include "esp_log.h"
 
 PsychicWebHandler::PsychicWebHandler() : 
   PsychicHandler(),
@@ -14,6 +15,7 @@ bool PsychicWebHandler::canHandle(PsychicRequest *request) {
 
 esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
 {
+  ESP_LOGW("PsychicHTTP", "[http] Handling request at endpoint %s", request->uri());
   //lookup our client
   PsychicClient *client = checkForNewClient(request->client());
   if (client->isNew)
@@ -43,7 +45,10 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
 
   //okay, pass on to our callback.
   if (this->_requestCallback != NULL)
+  {
+    ESP_LOGI("PsychicHTTP", "[http] connection received at endpoint");
     err = this->_requestCallback(request);
+  }
 
   return err;
 }

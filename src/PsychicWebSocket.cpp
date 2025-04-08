@@ -1,4 +1,5 @@
 #include "PsychicWebSocket.h"
+#include <esp_log.h>
 
 /*************************************/
 /*  PsychicWebSocketRequest      */
