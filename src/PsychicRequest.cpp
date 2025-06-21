@@ -357,8 +357,7 @@ PsychicWebParameter* PsychicRequest::addParam(PsychicWebParameter* param)
 
 bool PsychicRequest::hasParam(const char *key)
 {
-  // return getParam(key) != NULL;
-  return false;
+  return getParam(key) != nullptr;
 }
 
 PsychicWebParameter* PsychicRequest::getParam(const char* key)

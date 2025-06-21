@@ -82,7 +82,7 @@ class PsychicRequest {
     const char * url() { return uri(); }            //compatability function.  same as uri()
 
     void loadParams();
-    PsychicWebParameter * addParam(const std::string& name, const std::string& value, bool decode, bool post);
+    PsychicWebParameter * addParam(const std::string& name, const std::string& value, bool decode = true, bool post = false);
     PsychicWebParameter * addParam(PsychicWebParameter* param);
     bool hasParam(const char *key);
     PsychicWebParameter * getParam(const char *name);
