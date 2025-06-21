@@ -71,22 +71,23 @@ const char *PsychicRequest::getFilename()
   if (this->hasHeader("Content-Disposition"))
   {
     ContentDisposition cd = this->getContentDisposition();
-    // if (cd.filename != "")
-    // return cd.filename;
-    return "";
+    if (!cd.filename.empty())
+     return cd.filename.c_str();
   }
 
   // fall back to passed in query string
-  //  PsychicWebParameter *param = getParam("_filename");
-  //  if (param != NULL)
-  //    return param->name();
+   PsychicWebParameter *param = getParam("_filename");
+   if (param != nullptr)
+     return param->name().c_str();
 
   // fall back to parsing it from url (useful for wildcard uploads)
-  //  String uri = this->uri();
-  //  int filenameStart = uri.lastIndexOf('/') + 1;
-  //  String filename = uri.substring(filenameStart);
-  //  if (filename != "")
-  //    return filename;
+   std::string uri = this->uri();
+   auto pos = uri.find_last_of('/');
+   std::size_t filenameStart = (pos != std::string::npos ? pos + 1 : 0);
+   std::string filename = uri.substr(filenameStart);
+   if (!filename.empty()) {
+       return filename.c_str();
+   }
 
   // finally, unknown.
   ESP_LOGE(PH_TAG, "Did not get a valid filename from the upload.");
@@ -343,11 +344,9 @@ void PsychicRequest::_addParams(const std::string& params, bool post)
 PsychicWebParameter* PsychicRequest::addParam(const std::string& name, const std::string& value, bool decode, bool post)
 {
     if (decode)
-      return nullptr;  
-        // return addParam(new PsychicWebParameter(urlDecode(name), urlDecode(value), post));
+        return addParam(new PsychicWebParameter(urlDecode(name), urlDecode(value), post));
     else
-      return nullptr;
-        // return addParam(new PsychicWebParameter(name, value, post));
+        return addParam(new PsychicWebParameter(name, value, post));
 }
 
 PsychicWebParameter* PsychicRequest::addParam(PsychicWebParameter* param)
@@ -578,14 +577,13 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
 
 esp_err_t PsychicRequest::reply(int code)
 {
-  // PsychicResponse response(this);
+  PsychicResponse response(this);
 
-  // response.setCode(code);
-  // response.setContentType("text/plain");
-  // response.setContent(http_status_reason(code));
+  response.setCode(code);
+  response.setContentType("text/plain");
+  response.setContent(http_status_reason(code));
 
-  // return response.send();
-  return ESP_OK;
+  return response.send();
 }
 
 esp_err_t PsychicRequest::reply(const char *content)
@@ -601,12 +599,11 @@ esp_err_t PsychicRequest::reply(const char *content)
 
 esp_err_t PsychicRequest::reply(int code, const char *contentType, const char *content)
 {
-  // PsychicResponse response(this);
+  PsychicResponse response(this);
 
-  // response.setCode(code);
-  // response.setContentType(contentType);
-  // response.setContent(content);
+  response.setCode(code);
+  response.setContentType(contentType);
+  response.setContent(content);
 
-  // return response.send();
-  return ESP_OK;
+  return response.send();
 }

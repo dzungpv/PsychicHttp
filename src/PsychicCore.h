@@ -52,7 +52,7 @@ enum HTTPAuthMethod
   DIGEST_AUTH
 };
 
-void urlDecode(const char* encoded, char* decoded, size_t buffer_size);
+std::string urlDecode(const std::string &encoded);
 
 class PsychicHttpServer;
 class PsychicRequest;

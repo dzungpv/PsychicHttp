@@ -6,9 +6,10 @@
 #include "PsychicRequest.h"
 #include "PsychicWebHandler.h"
 #include "PsychicWebParameter.h"
+#include <string>
 
 //callback definitions
-typedef std::function<esp_err_t(PsychicRequest *request, const const char* filename, uint64_t index, uint8_t *data, size_t len, bool final)> PsychicUploadCallback;
+typedef std::function<esp_err_t(PsychicRequest *request, const std::string& filename, uint64_t index, uint8_t *data, size_t len, bool final)> PsychicUploadCallback;
 
 /*
 * HANDLER :: Can be attached to any endpoint or as a generic request handler.
@@ -20,17 +21,17 @@ class PsychicUploadHandler : public PsychicWebHandler {
 
     PsychicRequest *_request;
 
-    const char* _temp;
+    std::string _temp;
     size_t _parsedLength;
     uint8_t _multiParseState;
-    const char* _boundary;
+    std::string _boundary;
     uint8_t _boundaryPosition;
     size_t _itemStartIndex;
     size_t _itemSize;
-    const char* _itemName;
-    const char* _itemFilename;
-    const char* _itemType;
-    const char* _itemValue;
+    std::string _itemName;
+    std::string _itemFilename;
+    std::string _itemType;
+    std::string _itemValue;
     uint8_t *_itemBuffer;
     size_t _itemBufferIndex;
     bool _itemIsFile;

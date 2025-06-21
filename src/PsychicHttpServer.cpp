@@ -354,6 +354,30 @@ bool ON_AP_FILTER(PsychicRequest *request) {
   return ip4_addr_cmp(&ap_ip, &client_ip);
 }
 
+std::string urlDecode(const std::string &encoded) {
+    std::string decoded;
+    decoded.reserve(encoded.size());
+
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        char c = encoded[i];
+        if (c == '%' && i + 2 < encoded.size() &&
+            std::isxdigit(static_cast<unsigned char>(encoded[i + 1])) &&
+            std::isxdigit(static_cast<unsigned char>(encoded[i + 2]))) {
+            // Parse two hex digits after '%'
+            auto hexValue = encoded.substr(i + 1, 2);
+            char decodedChar = static_cast<char>(std::stoi(hexValue, nullptr, 16));
+            decoded.push_back(decodedChar);
+            i += 2;  // skip the two hex chars
+        } else if (c == '+') {
+            decoded.push_back(' ');
+        } else {
+            decoded.push_back(c);
+        }
+    }
+
+    return decoded;
+}
+
 void urlDecode(const char* encoded, char* decoded, size_t buffer_size) {
   if (!encoded || !decoded || buffer_size == 0) return;
 
