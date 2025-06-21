@@ -23,6 +23,9 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         server.listen(80);
+        server.on("/", HTTP_GET, [](PsychicRequest* request) {
+            return request->reply("Hello World!");
+        });
     }
 }
 
@@ -71,8 +74,4 @@ extern "C" void app_main(void)
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
-
-    server.on("/", HTTP_GET, [](PsychicRequest *request) {
-        return request->reply("Hello World!");
-    });
 } 
