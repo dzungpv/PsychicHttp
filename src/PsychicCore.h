@@ -53,6 +53,7 @@ enum HTTPAuthMethod
 };
 
 std::string urlDecode(const std::string &encoded);
+void urlDecode(const char* encoded, char* decoded, size_t buffer_size);
 
 class PsychicHttpServer;
 class PsychicRequest;
