@@ -6,7 +6,9 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebSocket.h"
 #include "PsychicJson.h"
-// #include "WiFi.h"
+#include "esp_netif.h"
+#include "esp_wifi.h"
+#include <lwip/ip4_addr.h>
 
 PsychicHttpServer::PsychicHttpServer() //:
   // _onOpen(NULL),
@@ -325,13 +327,32 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList() {
   return _clients;
 }
 
-// bool ON_STA_FILTER(PsychicRequest *request) {
-//   return WiFi.localIP() == request->client()->localIP();
-// }
+/* Function to get Wifi IP in AP and STA mode*/
+ip4_addr_t getWifiIp(bool apMode) {
+    esp_netif_ip_info_t ip_info;
+    memset(&ip_info, 0, sizeof(esp_netif_ip_info_t));
 
-// bool ON_AP_FILTER(PsychicRequest *request) {
-//   return WiFi.softAPIP() == request->client()->localIP();
-// }
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey(apMode ? "WIFI_AP_DEF" : "WIFI_STA_DEF");
+    if (netif) {
+        esp_netif_get_ip_info(netif, &ip_info);
+    }
+
+    ip4_addr_t result;
+    result.addr = ip_info.ip.addr;
+    return result;
+}
+
+bool ON_STA_FILTER(PsychicRequest *request) {
+  ip4_addr_t sta_ip = getWifiIp(false);
+  ip4_addr_t client_ip = request->client()->localIP();
+  return ip4_addr_cmp(&sta_ip, &client_ip);
+}
+
+bool ON_AP_FILTER(PsychicRequest *request) {
+  ip4_addr_t ap_ip = getWifiIp(true);
+  ip4_addr_t client_ip = request->client()->localIP();
+  return ip4_addr_cmp(&ap_ip, &client_ip);
+}
 
 void urlDecode(const char* encoded, char* decoded, size_t buffer_size) {
   if (!encoded || !decoded || buffer_size == 0) return;

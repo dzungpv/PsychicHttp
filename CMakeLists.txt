@@ -7,7 +7,8 @@ set(COMPONENT_ADD_INCLUDEDIRS
 )
 
 set(COMPONENT_REQUIRES
-    "urlencode"
+    "esp_netif"
+    "esp_wifi"
     "esp_https_server"
     "arduinojson"
 )

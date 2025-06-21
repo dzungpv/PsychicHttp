@@ -2,7 +2,7 @@
 #include "PsychicRequest.h"
 #include <http_status.h>
 #include "esp_log.h"
-#include "urlencode.h"
+#include "UrlEncode.h"
 
 PsychicResponse::PsychicResponse(PsychicRequest *request) :
   _request(request),
