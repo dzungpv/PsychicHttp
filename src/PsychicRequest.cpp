@@ -36,9 +36,9 @@ PsychicRequest::~PsychicRequest()
     free(_tempObject);
 
   // our web parameters
-  // for (auto *param : _params)
-  //   delete (param);
-  // _params.clear();
+  for (auto *param : _params)
+    delete (param);
+  _params.clear();
 }
 
 void PsychicRequest::freeSession(void *ctx)
@@ -155,11 +155,11 @@ esp_err_t PsychicRequest::loadBody()
   {
     int received = httpd_req_recv(this->_req, buf + actuallyReceived, remaining);
 
-    if (received == HTTPD_SOCK_ERR_TIMEOUT)
+    if (received == HTTPD_SOCK_ERR_TIMEOUT) // -3
     {
       continue;
     }
-    else if (received <= 0)
+    else if (received <= HTTPD_SOCK_ERR_FAIL) // include HTTPD_SOCK_ERR_INVALID -2 and  HTTPD_SOCK_ERR_FAIL -1
     {
       ESP_LOGE(PH_TAG, "Failed to receive data.");
       err = ESP_FAIL;

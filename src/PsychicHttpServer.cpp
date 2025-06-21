@@ -10,9 +10,9 @@
 #include "esp_wifi.h"
 #include <lwip/ip4_addr.h>
 
-PsychicHttpServer::PsychicHttpServer() //:
-  // _onOpen(NULL),
-  // _onClose(NULL)
+PsychicHttpServer::PsychicHttpServer():
+  _onOpen(nullptr),
+  _onClose(nullptr)
 {
   maxRequestBodySize = MAX_REQUEST_BODY_SIZE;
   maxUploadSize = MAX_UPLOAD_SIZE;
