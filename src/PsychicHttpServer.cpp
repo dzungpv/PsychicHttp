@@ -54,7 +54,7 @@ PsychicHttpServer::~PsychicHttpServer()
     delete(handler);
   _handlers.clear();
 
-  // delete defaultEndpoint;
+  delete defaultEndpoint;
 }
 
 void PsychicHttpServer::destroy(void *ctx)

@@ -30,7 +30,7 @@ class PsychicEventSourceResponse;
 class PsychicEventSourceClient;
 class PsychicResponse;
 
-typedef void (*PsychicEventSourceClientCallback)(PsychicEventSourceClient* client);
+typedef std::function<void(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
 
 class PsychicEventSourceClient : public PsychicClient {
   friend PsychicEventSource;

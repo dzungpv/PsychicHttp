@@ -61,17 +61,14 @@ class PsychicRequest;
 class PsychicClient;
 
 // Filter function definition
-typedef bool (*PsychicRequestFilterFunction)(PsychicRequest *request);
+typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunction;
 
 // Client connect callback
-typedef void (*PsychicClientCallback)(PsychicClient *client);
+typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
 
 // // Callback definitions
-typedef esp_err_t (*PsychicHttpRequestCallback)(PsychicRequest *request);
-typedef esp_err_t (*PsychicJsonRequestCallback)(PsychicRequest *request, JsonVariant json);
-
-typedef bool (*PsychicRequestFilterFunction)(PsychicRequest *request);
-typedef void (*PsychicClientCallback)(PsychicClient *client);
+typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
+typedef std::function<esp_err_t(PsychicRequest *request, JsonVariant &json)> PsychicJsonRequestCallback;
 
 struct HTTPHeader
 {

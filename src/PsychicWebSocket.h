@@ -8,11 +8,8 @@ class PsychicWebSocketRequest;
 class PsychicWebSocketClient;
 
 //callback function definitions
-// typedef std::function<void(PsychicWebSocketClient *client)> PsychicWebSocketClientCallback;
-// typedef std::function<esp_err_t(PsychicWebSocketRequest *request, httpd_ws_frame *frame)> PsychicWebSocketFrameCallback;
-
-typedef void (*PsychicWebSocketClientCallback)(PsychicWebSocketClient *client);
-typedef esp_err_t (*PsychicWebSocketFrameCallback)(PsychicWebSocketRequest *request, httpd_ws_frame *frame);
+typedef std::function<void(PsychicWebSocketClient *client)> PsychicWebSocketClientCallback;
+typedef std::function<esp_err_t(PsychicWebSocketRequest *request, httpd_ws_frame *frame)> PsychicWebSocketFrameCallback;
 
 
 class PsychicWebSocketClient : public PsychicClient
