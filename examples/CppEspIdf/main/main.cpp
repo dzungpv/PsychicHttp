@@ -84,27 +84,50 @@ extern "C" void app_main()
     // 5. Load SSL cert/key if enabled
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
     if (app_enable_ssl) {
-        FILE *f = fopen("/littlefs/server.crt", "r");
-        if (f) {
-            char buf[4096];
-            size_t r = fread(buf, 1, sizeof(buf) - 1, f);
-            buf[r] = '\0';
-            server_cert = buf;
-            fclose(f);
-        } else {
-            ESP_LOGW(TAG, "server.crt not found, disabling SSL");
+        // Cert
+        FILE *fcrt = fopen("/littlefs/server.crt", "rb");
+        if (!fcrt) {
+            ESP_LOGE(TAG, "server.crt not found, disabling SSL");
             app_enable_ssl = false;
+        } else {
+            fseek(fcrt, 0, SEEK_END);
+            size_t cert_size = ftell(fcrt);
+            rewind(fcrt);
+
+            std::string cert;
+            cert.resize(cert_size);
+            size_t read_bytes = fread(&cert[0], 1, cert_size, fcrt);
+            fclose(fcrt);
+
+            if (read_bytes != cert_size) {
+                ESP_LOGE(TAG, "Failed read cert (%u/%u)", (unsigned)read_bytes, (unsigned)cert_size);
+                app_enable_ssl = false;
+            } else {
+                server_cert = std::move(cert);
+            }
         }
-        f = fopen("/littlefs/server.key", "r");
-        if (f) {
-            char buf[4096];
-            size_t r = fread(buf, 1, sizeof(buf) - 1, f);
-            buf[r] = '\0';
-            server_key = buf;
-            fclose(f);
-        } else {
-            ESP_LOGW(TAG, "server.key not found, disabling SSL");
+
+        // Key
+        FILE *fkey = fopen("/littlefs/server.key", "rb");
+        if (!fkey) {
+            ESP_LOGE(TAG, "server.key not found, disabling SSL");
             app_enable_ssl = false;
+        } else {
+            fseek(fkey, 0, SEEK_END);
+            size_t key_size = ftell(fkey);
+            rewind(fkey);
+
+            std::string key;
+            key.resize(key_size);
+            size_t read_bytes = fread(&key[0], 1, key_size, fkey);
+            fclose(fkey);
+
+            if (read_bytes != key_size) {
+                ESP_LOGE(TAG, "Failed read key (%u/%u)", (unsigned)read_bytes, (unsigned)key_size);
+                app_enable_ssl = false;
+            } else {
+                server_key = std::move(key);
+            }
         }
     }
 #endif
