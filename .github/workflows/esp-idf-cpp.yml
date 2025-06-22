@@ -3,30 +3,27 @@ name: ESP-IDF C++ CI
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
     branches:
-      - main
+      - dev
   workflow_dispatch:
 
 jobs:
   build_esp_idf_example:
-    name: Build CppEspIdf example with ESP-IDF ${{ matrix.idf_version }}
+    name: Build CppEspIdf example with ESP-IDF v5.3
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        idf_version: ['v4.4.7', 'v5.3']
-
+    
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          path: ${{ github.workspace }}/app
+          path: ${{ github.workspace }}/app 
 
-      - name: Build with ESP-IDF ${{ matrix.idf_version }}
+      - name: Build with ESP-IDF v5.3
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: ${{ matrix.idf_version }}
+          esp_idf_version: v5.3
           target: esp32
           path: app/examples/CppEspIdf
           command: |

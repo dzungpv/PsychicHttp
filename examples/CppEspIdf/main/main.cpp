@@ -12,10 +12,10 @@
 #include "esp_wifi.h"
 #include "esp_littlefs.h"
 #include "mdns.h"
-#include "ArduinoJson.h"            // header-only, if you wish to keep using it
-#include "PsychicHttp.h"
+#include <ArduinoJson.h>            // header-only, if you wish to keep using it
+#include <PsychicHttp.h>
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE //set this to y in menuconfig to enable SSL
-#include "PsychicHttpsServer.h"
+#include <PsychicHttpsServer.h>
 #endif
 #include "lwip/ip_addr.h"  // for IPSTR/IP2STR
 #include "secret.h"                // #define WIFI_SSID, WIFI_PASS here
