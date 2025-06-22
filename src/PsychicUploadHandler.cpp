@@ -1,4 +1,17 @@
 #include "PsychicUploadHandler.h"
+#include <algorithm>
+#include <cctype>
+#include <functional>
+#include <esp_log.h>
+
+// Helper function for case-insensitive string comparison
+static bool iequals(const std::string& a, const std::string& b) {
+    return std::equal(a.begin(), a.end(),
+                      b.begin(), b.end(),
+                      [](char a, char b) {
+                          return tolower(a) == tolower(b);
+                      });
+}
 
 PsychicUploadHandler::PsychicUploadHandler() : 
   PsychicWebHandler()
@@ -47,7 +60,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
   request->loadParams();
 
   //TODO: support for the 100 header.  not sure if we can do it.
-  // if (request->header("Expect").equals("100-continue"))
+  // if (request->header("Expect") == ("100-continue"))
   // {
   //   char response[] = "100 Continue";
   //   httpd_socket_send(self->server, httpd_req_to_sockfd(req), response, strlen(response), 0);
@@ -62,7 +75,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
   //we can also call onRequest for some final processing and response
   if (err == ESP_OK)
   {
-    if (_requestCallback != NULL)
+    if (_requestCallback != nullptr)
       err = _requestCallback(request);
     else
       err = request->reply("Upload Successful.");
@@ -77,7 +90,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
 {
   esp_err_t err = ESP_OK;
 
-  String filename = request->getFilename();
+  std::string filename = request->getFilename();
 
   /* Retrieve the pointer to scratch buffer for temporary storage */
   char *buf = (char *)malloc(FILE_CHUNK_SIZE);
@@ -96,7 +109,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
     //ESP_LOGD(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
-    if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+    if ((received = httpd_req_recv(request->request(), buf, std::min(remaining, FILE_CHUNK_SIZE))) <= 0)
     {
       /* Retry if timeout occurred */
       if (received == HTTPD_SOCK_ERR_TIMEOUT)
@@ -111,7 +124,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
     }
 
     //call our upload callback here.
-    if (_uploadCallback != NULL)
+    if (_uploadCallback != nullptr)
     {
       err = _uploadCallback(request, filename, index, (uint8_t *)buf, received, (remaining - received == 0));
       if (err != ESP_OK)
@@ -139,13 +152,24 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicRequest *request)
 {
   esp_err_t err = ESP_OK;
 
-  String value = request->header("Content-Type");
-  if (value.startsWith("multipart/")){
-    _boundary = value.substring(value.indexOf('=')+1);
-    _boundary.replace("\"","");
+  std::string value = request->header("Content-Type");
+  if (value.rfind("multipart/", 0) == 0)  // starts with "multipart/"
+  {
+      auto eqPos = value.find('=');
+      if (eqPos != std::string::npos) {
+          // everything after '=' is the boundary
+          _boundary = value.substr(eqPos + 1);
+          // strip out any quotes
+          _boundary.erase(
+              std::remove(_boundary.begin(), _boundary.end(), '\"'),
+              _boundary.end());
+      } else {
+          ESP_LOGE(PH_TAG, "Malformed Content-Type header: no '=' after multipart/");
+          return request->reply(400, "text/html", "Malformed Content-Type header.");
+      }
   } else {
-    ESP_LOGE(PH_TAG, "No multipart boundary found.");
-    return request->reply(400, "text/html", "No multipart boundary found.");
+      ESP_LOGE(PH_TAG, "No multipart boundary found.");
+      return request->reply(400, "text/html", "No multipart boundary found.");
   }
 
   char *buf = (char *)malloc(FILE_CHUNK_SIZE);
@@ -164,7 +188,7 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicRequest *request)
     //ESP_LOGD(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
-    if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+    if ((received = httpd_req_recv(request->request(), buf, std::min(remaining, FILE_CHUNK_SIZE))) <= 0)
     {
       /* Retry if timeout occurred */
       if (received == HTTPD_SOCK_ERR_TIMEOUT)
@@ -221,10 +245,10 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
   if (_multiParseState == PARSE_ERROR)
   {
     // not sure we can end up with an error during buffer fill, but jsut to be safe
-    if (_itemBuffer != NULL)
+    if (_itemBuffer != nullptr)
     {
       free(_itemBuffer);    
-      _itemBuffer = NULL;
+      _itemBuffer = nullptr;
     }
 
     return;
@@ -232,10 +256,10 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
 
   if(!_parsedLength){
     _multiParseState = EXPECT_BOUNDARY;
-    _temp = String();
-    _itemName = String();
-    _itemFilename = String();
-    _itemType = String();
+    _temp.clear();
+    _itemName.clear();
+    _itemFilename.clear();
+    _itemType.clear();
   }
 
   if(_multiParseState == WAIT_FOR_RETURN1){
@@ -271,24 +295,24 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
        _temp += (char)data;
     if((char)data == '\n'){
       if(_temp.length()){
-        if(_temp.length() > 12 && _temp.substring(0, 12).equalsIgnoreCase("Content-Type")){
-          _itemType = _temp.substring(14);
+        if(_temp.length() > 12 && iequals(_temp.substr(0, 12), "Content-Type")){
+          _itemType = _temp.substr(14);
           _itemIsFile = true;
-        } else if(_temp.length() > 19 && _temp.substring(0, 19).equalsIgnoreCase("Content-Disposition")){
-          _temp = _temp.substring(_temp.indexOf(';') + 2);
-          while(_temp.indexOf(';') > 0){
-            String name = _temp.substring(0, _temp.indexOf('='));
-            String nameVal = _temp.substring(_temp.indexOf('=') + 2, _temp.indexOf(';') - 1);
+        } else if(_temp.length() > 19 && iequals(_temp.substr(0, 19), "Content-Disposition")){
+          _temp = _temp.substr(_temp.find(';') + 2);
+          while(_temp.find(';') != std::string::npos){
+            std::string name = _temp.substr(0, _temp.find('='));
+            std::string nameVal = _temp.substr(_temp.find('=') + 2, _temp.find(';') - _temp.find('=') - 3);
             if(name == "name"){
               _itemName = nameVal;
             } else if(name == "filename"){
               _itemFilename = nameVal;
               _itemIsFile = true;
             }
-            _temp = _temp.substring(_temp.indexOf(';') + 2);
+            _temp = _temp.substr(_temp.find(';') + 2);
           }
-          String name = _temp.substring(0, _temp.indexOf('='));
-          String nameVal = _temp.substring(_temp.indexOf('=') + 2, _temp.length() - 1);
+          std::string name = _temp.substr(0, _temp.find('='));
+          std::string nameVal = _temp.substr(_temp.find('=') + 2, _temp.length() - _temp.find('=') - 3);
           if(name == "name"){
             _itemName = nameVal;
           } else if(name == "filename"){
@@ -296,18 +320,18 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
             _itemIsFile = true;
           }
         }
-        _temp = String();
+        _temp.clear();
       } else {
         _multiParseState = WAIT_FOR_RETURN1;
         //value starts from here
         _itemSize = 0;
         _itemStartIndex = _parsedLength;
-        _itemValue = String();
+        _itemValue.clear();
         if(_itemIsFile){
           if(_itemBuffer)
             free(_itemBuffer);
           _itemBuffer = (uint8_t*)malloc(FILE_CHUNK_SIZE);
-          if(_itemBuffer == NULL){
+          if(_itemBuffer == nullptr){
             ESP_LOGE(PH_TAG, "Multipart: Failed to allocate buffer");
             _multiParseState = PARSE_ERROR;
             return;
@@ -359,7 +383,7 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
           _request->addParam(new PsychicWebParameter(_itemName, _itemFilename, true, true, _itemSize));
         }
         free(_itemBuffer);
-        _itemBuffer = NULL;
+        _itemBuffer = nullptr;
       }
 
     } else {
@@ -378,7 +402,7 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
     } else {
       _multiParseState = WAIT_FOR_RETURN1;
       itemWriteByte('\r'); itemWriteByte('\n'); itemWriteByte('-');  itemWriteByte('-');
-      uint8_t i; for(i=0; i<_boundary.length(); i++) itemWriteByte(_boundary.c_str()[i]);
+      for(size_t i=0; i<_boundary.length(); i++) itemWriteByte(_boundary.c_str()[i]);
       _parseMultipartPostByte(data, last);
     }
   } else if(_multiParseState == EXPECT_FEED2){
@@ -388,7 +412,7 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
     } else {
       _multiParseState = WAIT_FOR_RETURN1;
       itemWriteByte('\r'); itemWriteByte('\n'); itemWriteByte('-');  itemWriteByte('-');
-      uint8_t i; for(i=0; i<_boundary.length(); i++) itemWriteByte(_boundary.c_str()[i]);
+      for(size_t i=0; i<_boundary.length(); i++) itemWriteByte(_boundary.c_str()[i]);
       itemWriteByte('\r'); _parseMultipartPostByte(data, last);
     }
   }

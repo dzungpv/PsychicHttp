@@ -35,29 +35,32 @@
 #include <esp_http_server.h>
 #include <map>
 #include <list>
-#include <libb64/cencode.h>
+#include <functional>
+
+// #include <libb64/cencode.h>
 #include "esp_random.h"
-#include "MD5Builder.h"
-#include <UrlEncode.h>
-#include "FS.h"
+// #include "MD5Builder.h"
+// #include <UrlEncode.h>
+// #include "FS.h"
 #include <ArduinoJson.h>
 
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
-String urlDecode(const char* encoded);
+std::string urlDecode(const std::string &encoded);
+void urlDecode(const char* encoded, char* decoded, size_t buffer_size);
 
 class PsychicHttpServer;
 class PsychicRequest;
 class PsychicWebSocketRequest;
 class PsychicClient;
 
-//filter function definition
+// Filter function definition
 typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunction;
 
-//client connect callback
+// Client connect callback
 typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
 
-//callback definitions
+// // Callback definitions
 typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
 typedef std::function<esp_err_t(PsychicRequest *request, JsonVariant &json)> PsychicJsonRequestCallback;
 
@@ -71,8 +74,7 @@ class DefaultHeaders {
 
 public:
   DefaultHeaders() {}
-
-  void addHeader(const String& field, const String& value)
+  void addHeader(const std::string& field, const std::string& value)
   {
     addHeader(field.c_str(), value.c_str());
   }
@@ -91,7 +93,7 @@ public:
     _headers.push_back(header);
   }
 
-  const std::list<HTTPHeader>& getHeaders() { return _headers; }
+  const std::list<HTTPHeader>& getHeaders() const { return _headers; }
 
   //delete the copy constructor, singleton class
   DefaultHeaders(DefaultHeaders const &) = delete;

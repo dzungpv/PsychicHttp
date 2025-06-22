@@ -19,6 +19,7 @@
 */
 
 #include "PsychicEventSource.h"
+#include "esp_log.h"
 
 /*****************************************/
 // PsychicEventSource - Handler
@@ -26,8 +27,8 @@
 
 PsychicEventSource::PsychicEventSource() :
   PsychicHandler(),
-  _onOpen(NULL),
-  _onClose(NULL)
+  _onOpen(nullptr),
+  _onClose(nullptr)
 {}
 
 PsychicEventSource::~PsychicEventSource() {
@@ -37,8 +38,8 @@ PsychicEventSourceClient * PsychicEventSource::getClient(int socket)
 {
   PsychicClient *client = PsychicHandler::getClient(socket);
 
-  if (client == NULL)
-    return NULL;
+  if (client == nullptr)
+    return nullptr;
 
   return (PsychicEventSourceClient *)client->_friend;
 }
@@ -89,34 +90,34 @@ void PsychicEventSource::addClient(PsychicClient *client) {
 void PsychicEventSource::removeClient(PsychicClient *client) {
   PsychicHandler::removeClient(client);
   delete (PsychicEventSourceClient*)client->_friend;
-  client->_friend = NULL;
+  client->_friend = nullptr;
 }
 
 void PsychicEventSource::openCallback(PsychicClient *client) {
   PsychicEventSourceClient *buddy = getClient(client);
-  if (buddy == NULL)
+  if (buddy == nullptr)
   {
     return;
   }
 
-  if (_onOpen != NULL)
+  if (_onOpen != nullptr)
     _onOpen(buddy);
 }
 
 void PsychicEventSource::closeCallback(PsychicClient *client) {
   PsychicEventSourceClient *buddy = getClient(client);
-  if (buddy == NULL)
+  if (buddy == nullptr)
   {
     return;
   }
 
-  if (_onClose != NULL)
+  if (_onClose != nullptr)
     _onClose(getClient(buddy));
 }
 
 void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect)
 {
-  String ev = generateEventMessage(message, event, id, reconnect);
+  std::string ev = generateEventMessage(message, event, id, reconnect);
   for(PsychicClient *c : _clients) {
     ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
   }
@@ -136,7 +137,7 @@ PsychicEventSourceClient::~PsychicEventSourceClient(){
 }
 
 void PsychicEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
-  String ev = generateEventMessage(message, event, id, reconnect);
+  std::string ev = generateEventMessage(message, event, id, reconnect);
   sendEvent(ev.c_str());
 }
 
@@ -160,20 +161,24 @@ PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicRequest *request)
 }
 
 esp_err_t PsychicEventSourceResponse::send() {
+  std::string out;
 
-  //build our main header
-  String out = String();
-  out.concat("HTTP/1.1 200 OK\r\n");
-  out.concat("Content-Type: text/event-stream\r\n");
-  out.concat("Cache-Control: no-cache\r\n");
-  out.concat("Connection: keep-alive\r\n");
+  // Compose the basic HTTP response headers
+  out += "HTTP/1.1 200 OK\r\n";
+  out += "Content-Type: text/event-stream\r\n";
+  out += "Cache-Control: no-cache\r\n";
+  out += "Connection: keep-alive\r\n";
 
-  //get our global headers out of the way first
-  for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
-    out.concat(String(header.field) + ": " + String(header.value) + "\r\n");
+  // Append default headers
+  for (const HTTPHeader& header : DefaultHeaders::Instance().getHeaders()) {
+      out += header.field;
+      out += ": ";
+      out += header.value;
+      out += "\r\n";
+  }
 
-  //separator
-  out.concat("\r\n");
+  // Final empty line separates headers from body
+  out += "\r\n";
 
   int result;
   do {
@@ -193,33 +198,33 @@ esp_err_t PsychicEventSourceResponse::send() {
 // Event Message Generator
 /*****************************************/
 
-String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect) {
-  String ev = "";
+std::string generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect) {
+  std::string ev;
 
-  if(reconnect){
-    ev += "retry: ";
-    ev += String(reconnect);
-    ev += "\r\n";
+  char line[64];
+
+  if (reconnect) {
+      snprintf(line, sizeof(line), "retry: %lu\r\n", reconnect);
+      ev += line;
   }
 
-  if(id){
-    ev += "id: ";
-    ev += String(id);
-    ev += "\r\n";
+  if (id) {
+      snprintf(line, sizeof(line), "id: %lu\r\n", id);
+      ev += line;
   }
 
-  if(event != NULL){
-    ev += "event: ";
-    ev += String(event);
-    ev += "\r\n";
+  if (event != nullptr) {
+      ev += "event: ";
+      ev += event;
+      ev += "\r\n";
   }
 
-  if(message != NULL){
-    ev += "data: ";
-    ev += String(message);
-    ev += "\r\n";
+  if (message != nullptr) {
+      ev += "data: ";
+      ev += message;
+      ev += "\r\n";
   }
+
   ev += "\r\n";
-
   return ev;
 }

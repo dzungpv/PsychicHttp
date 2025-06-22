@@ -72,7 +72,7 @@ class PsychicHttpServer
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 
-    PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
+    PsychicStaticFileHandler* serveStatic(const char* uri, const char* path, const char* cache_control = nullptr);
 };
 
 bool ON_STA_FILTER(PsychicRequest *request);

@@ -1,6 +1,8 @@
 #include "PsychicResponse.h"
 #include "PsychicRequest.h"
 #include <http_status.h>
+#include "esp_log.h"
+#include "UrlEncode.h"
 
 PsychicResponse::PsychicResponse(PsychicRequest *request) :
   _request(request),
@@ -39,31 +41,33 @@ void PsychicResponse::setCookie(const char *name, const char *value, unsigned lo
 {
   time_t now = time(nullptr);
 
-  String output;
-  output = urlEncode(name) + "=" + urlEncode(value);
+  std::string output = urlEncode(name) + "=" + urlEncode(value);
 
   //if current time isn't modern, default to using max age
   if (now < 1700000000)
-    output += "; Max-Age=" + String(secondsFromNow);    
+    output += "; Max-Age=" + std::to_string(secondsFromNow);    
   //otherwise, set an expiration date
   else
   {
     time_t expirationTimestamp = now + secondsFromNow;
 
     // Convert the expiration timestamp to a formatted string for the "expires" attribute
-    struct tm* tmInfo = gmtime(&expirationTimestamp);
+    struct tm tmInfo;
+    // Use thread-safe gmtime_r instead of gmtime
+    gmtime_r(&expirationTimestamp, &tmInfo);
     char expires[30];
-    strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", tmInfo);
-    output += "; Expires=" + String(expires);
+    strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", &tmInfo);
+    output += "; Expires=" +  std::string(expires);
   }
 
   //did we get any extras?
-  if (strlen(extras))
-    output += "; " + String(extras);
+  if (extras && strlen(extras))
+    output += "; " + std::string(extras);
 
   //okay, add it in.
   addHeader("Set-Cookie", output.c_str());
 }
+
 
 void PsychicResponse::setCode(int code)
 {
@@ -146,7 +150,7 @@ esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
     ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
 
     /* Abort sending file */
-    httpd_resp_sendstr_chunk(this->_request->request(), NULL);
+    httpd_resp_sendstr_chunk(this->_request->request(), nullptr);
 
     /* Respond with 500 Internal Server Error */
     httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
@@ -158,5 +162,5 @@ esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
 esp_err_t PsychicResponse::finishChunking()
 {
   /* Respond with an empty chunk to signal HTTP response completion */
-  return httpd_resp_send_chunk(this->_request->request(), NULL, 0);
+  return httpd_resp_send_chunk(this->_request->request(), nullptr, 0);
 }

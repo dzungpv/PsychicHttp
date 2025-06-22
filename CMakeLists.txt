@@ -7,10 +7,10 @@ set(COMPONENT_ADD_INCLUDEDIRS
 )
 
 set(COMPONENT_REQUIRES
-    "arduino-esp32"
+    "esp_netif"
+    "esp_wifi"
     "esp_https_server"
     "arduinojson"
-    "urlencode"
 )
 
 register_component()

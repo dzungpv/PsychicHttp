@@ -1,4 +1,5 @@
 #include "async_worker.h"
+#include "esp_log.h"
 
 bool is_on_async_worker_thread(void)
 {
@@ -16,7 +17,7 @@ bool is_on_async_worker_thread(void)
 esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler)
 {
     // must create a copy of the request that we own
-    httpd_req_t* copy = NULL;
+    httpd_req_t* copy = nullptr;
     esp_err_t err = httpd_req_async_handler_begin(req, &copy);
     if (err != ESP_OK) {
         return err;
@@ -79,7 +80,7 @@ void async_req_worker_task(void *p)
     }
 
     ESP_LOGW(PH_TAG, "worker stopped");
-    vTaskDelete(NULL);
+    vTaskDelete(nullptr);
 }
 
 void start_async_req_workers(void)
@@ -89,14 +90,14 @@ void start_async_req_workers(void)
     worker_ready_count = xSemaphoreCreateCounting(
         ASYNC_WORKER_COUNT,  // Max Count
         0); // Initial Count
-    if (worker_ready_count == NULL) {
+    if (worker_ready_count == nullptr) {
         ESP_LOGE(PH_TAG, "Failed to create workers counting Semaphore");
         return;
     }
 
     // create queue
     async_req_queue = xQueueCreate(1, sizeof(httpd_async_req_t));
-    if (async_req_queue == NULL){
+    if (async_req_queue == nullptr){
         ESP_LOGE(PH_TAG, "Failed to create async_req_queue");
         vSemaphoreDelete(worker_ready_count);
         return;
@@ -157,20 +158,20 @@ struct httpd_req_aux {
 
 esp_err_t httpd_req_async_handler_begin(httpd_req_t *r, httpd_req_t **out)
 {
-    if (r == NULL || out == NULL) {
+    if (r == nullptr || out == nullptr) {
         return ESP_ERR_INVALID_ARG;
     }
 
     // alloc async req
     httpd_req_t *async = (httpd_req_t *)malloc(sizeof(httpd_req_t));
-    if (async == NULL) {
+    if (async == nullptr) {
         return ESP_ERR_NO_MEM;
     }
     memcpy((void *)async, (void *)r, sizeof(httpd_req_t));
 
     // alloc async aux
     async->aux = (httpd_req_aux *)malloc(sizeof(struct httpd_req_aux));
-    if (async->aux == NULL) {
+    if (async->aux == nullptr) {
         free(async);
         return ESP_ERR_NO_MEM;
     }
@@ -188,7 +189,7 @@ esp_err_t httpd_req_async_handler_begin(httpd_req_t *r, httpd_req_t **out)
 
 esp_err_t httpd_req_async_handler_complete(httpd_req_t *r)
 {
-    if (r == NULL) {
+    if (r == nullptr) {
         return ESP_ERR_INVALID_ARG;
     }
 

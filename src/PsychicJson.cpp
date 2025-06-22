@@ -43,7 +43,7 @@ esp_err_t PsychicJsonResponse::send()
     buffer_size = JSON_BUFFER_SIZE;
 
   buffer = (char *)malloc(buffer_size);
-  if (buffer == NULL) {
+  if (buffer == nullptr) {
     httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
     return ESP_FAIL;
   }
@@ -83,7 +83,7 @@ esp_err_t PsychicJsonResponse::send()
 
 #ifdef ARDUINOJSON_6_COMPATIBILITY
   PsychicJsonHandler::PsychicJsonHandler(size_t maxJsonBufferSize) :
-    _onRequest(NULL),
+    _onRequest(nullptr),
     _maxJsonBufferSize(maxJsonBufferSize)
   {};
 
@@ -93,7 +93,7 @@ esp_err_t PsychicJsonResponse::send()
   {}
 #else
   PsychicJsonHandler::PsychicJsonHandler() :
-    _onRequest(NULL)
+    _onRequest(nullptr)
   {};
 
   PsychicJsonHandler::PsychicJsonHandler(PsychicJsonRequestCallback onRequest) :

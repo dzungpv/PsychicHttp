@@ -1,10 +1,11 @@
 #include "PsychicWebHandler.h"
+#include "esp_log.h"
 
 PsychicWebHandler::PsychicWebHandler() : 
   PsychicHandler(),
-  _requestCallback(NULL),
-  _onOpen(NULL),
-  _onClose(NULL)
+  _requestCallback(nullptr),
+  _onOpen(nullptr),
+  _onClose(nullptr)
   {}
 PsychicWebHandler::~PsychicWebHandler() {}
 
@@ -42,8 +43,10 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
   request->loadParams();
 
   //okay, pass on to our callback.
-  if (this->_requestCallback != NULL)
+  if (this->_requestCallback != nullptr)
+  {
     err = this->_requestCallback(request);
+  }
 
   return err;
 }
@@ -54,12 +57,12 @@ PsychicWebHandler * PsychicWebHandler::onRequest(PsychicHttpRequestCallback fn) 
 }
 
 void PsychicWebHandler::openCallback(PsychicClient *client) {
-  if (_onOpen != NULL)
+  if (_onOpen != nullptr)
     _onOpen(client);
 }
 
 void PsychicWebHandler::closeCallback(PsychicClient *client) {
-  if (_onClose != NULL)
+  if (_onClose != nullptr)
     _onClose(getClient(client));
 }
 

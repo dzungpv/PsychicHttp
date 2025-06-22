@@ -1,5 +1,6 @@
-
 #include "ChunkPrinter.h"
+#include <cstring>
+#include <esp_log.h>
 
 ChunkPrinter::ChunkPrinter(PsychicResponse *response, uint8_t *buffer, size_t len) :
   _response(response),
@@ -8,13 +9,12 @@ ChunkPrinter::ChunkPrinter(PsychicResponse *response, uint8_t *buffer, size_t le
   _pos(0)
 {}
 
-ChunkPrinter::~ChunkPrinter()
-{
-  flush();
+
+ChunkPrinter::~ChunkPrinter() {
+    flush();
 }
 
-size_t ChunkPrinter::write(uint8_t c)
-{
+size_t ChunkPrinter::write(uint8_t c) {
   esp_err_t err;
   
   //if we're full, send a chunk
@@ -32,8 +32,7 @@ size_t ChunkPrinter::write(uint8_t c)
   return 1;
 }
 
-size_t ChunkPrinter::write(const uint8_t *buffer, size_t size)
-{
+size_t ChunkPrinter::write(const uint8_t* buffer, size_t size) {
   size_t written = 0;
   
   while (written < size)
@@ -54,10 +53,10 @@ size_t ChunkPrinter::write(const uint8_t *buffer, size_t size)
     written += blockSize; //Update if sent correctly.
   }
   return written;
+
 }
 
-void ChunkPrinter::flush()
-{
+void ChunkPrinter::flush() {
   if (_pos)
   {
     _response->sendChunk(_buffer, _pos);
@@ -65,21 +64,21 @@ void ChunkPrinter::flush()
   }
 }
 
-size_t ChunkPrinter::copyFrom(Stream &stream)
-{
-  size_t count = 0;
+size_t ChunkPrinter::copyFrom(FILE* stream) {
+    size_t count = 0;
 
-  while (stream.available()){
-    
-    if (_pos == _length)
-    {
-      _response->sendChunk(_buffer, _length);
-      _pos = 0;
+    while (!feof(stream)) {
+        if (_pos == _length) {
+            _response->sendChunk(_buffer, _length);
+            _pos = 0;
+        }
+
+        size_t readBytes = fread(_buffer + _pos, 1, _length - _pos, stream);
+        _pos += readBytes;
+        count += readBytes;
+
+        if (readBytes == 0) break;
     }
-    
-    size_t readBytes = stream.readBytes(_buffer + _pos, _length - _pos);
-    _pos += readBytes;
-    count += readBytes;
-  }
-  return count;
+
+    return count;
 }
