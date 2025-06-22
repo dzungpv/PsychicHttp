@@ -48,10 +48,12 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, const std::str
   char buf[256];
   if (download)
   {
+    // set filename and force download
     snprintf(buf, sizeof(buf), "attachment; filename=\"%s\"", filename);
   }
   else
   {
+    // set filename and force rendering
     snprintf(buf, sizeof(buf), "inline; filename=\"%s\"", filename);
   }
   addHeader("Content-Disposition", buf);
@@ -172,6 +174,7 @@ esp_err_t PsychicFileResponse::send()
 {
     esp_err_t err = ESP_OK;
 
+    //just send small files directly
     size_t size = getContentLength();
 
     if (size < FILE_CHUNK_SIZE)
@@ -179,6 +182,7 @@ esp_err_t PsychicFileResponse::send()
         uint8_t *buffer = static_cast<uint8_t *>(malloc(size));
         if (!buffer)
         {
+            /* Respond with 500 Internal Server Error */
             httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
             return ESP_FAIL;
         }
@@ -192,9 +196,11 @@ esp_err_t PsychicFileResponse::send()
     }
     else
     {
+        /* Retrieve the pointer to scratch buffer for temporary storage */
         char *chunk = static_cast<char *>(malloc(FILE_CHUNK_SIZE));
         if (!chunk)
         {
+            /* Respond with 500 Internal Server Error */
             httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
             return ESP_FAIL;
         }
@@ -204,6 +210,7 @@ esp_err_t PsychicFileResponse::send()
         size_t chunksize;
         do
         {
+		    /* Read file in chunks into the scratch buffer */
             chunksize = fread(chunk, 1, FILE_CHUNK_SIZE, _content);
             if (chunksize > 0)
             {
@@ -212,8 +219,10 @@ esp_err_t PsychicFileResponse::send()
                     break;
             }
 
+        /* Keep looping till the whole file is sent */
         } while (chunksize != 0 && !feof(_content));
 
+        //keep track of our memory
         free(chunk);
 
         if (err == ESP_OK)

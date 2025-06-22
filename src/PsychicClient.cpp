@@ -6,7 +6,7 @@
 PsychicClient::PsychicClient(httpd_handle_t server, int socket) :
   _server(server),
   _socket(socket),
-  _friend(NULL),
+  _friend(nullptr),
   isNew(false)
 {}
 
@@ -36,7 +36,7 @@ ip4_addr_t PsychicClient::localIP() {
   ip4_addr_set_zero(&ip_addr);  // Initialize to 0.0.0.0
 
   char ipstr[INET6_ADDRSTRLEN];
-  struct sockaddr_in6 addr;   // Using IPv6 addressing
+  struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
   socklen_t addr_size = sizeof(addr);
 
   if (getsockname(_socket, (struct sockaddr *)&addr, &addr_size) < 0) {
@@ -61,7 +61,7 @@ ip4_addr_t PsychicClient::remoteIP() {
   ip4_addr_set_zero(&ip_addr);  // Initialize to 0.0.0.0
 
   char ipstr[INET6_ADDRSTRLEN];
-  struct sockaddr_in6 addr;   // Using IPv6 addressing
+  struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
   socklen_t addr_size = sizeof(addr);
 
   if (getpeername(_socket, (struct sockaddr *)&addr, &addr_size) < 0) {

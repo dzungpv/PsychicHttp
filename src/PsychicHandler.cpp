@@ -1,15 +1,15 @@
 #include "PsychicHandler.h"
 
-PsychicHandler::PsychicHandler() : _filter(NULL),
-                                   _server(NULL),
-                                   _username(""),
-                                   _password(""),
-                                   _method(DIGEST_AUTH),
-                                   _realm(""),
-                                   _authFailMsg(""),
-                                   _subprotocol("")
-{
-}
+PsychicHandler::PsychicHandler() :
+  _filter(nullptr),
+  _server(nullptr),
+  _username(""),
+  _password(""),
+  _method(DIGEST_AUTH),
+  _realm(""),
+  _authFailMsg(""),
+  _subprotocol("")
+  {}
 
 PsychicHandler::~PsychicHandler()
 {
@@ -27,7 +27,7 @@ PsychicHandler *PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
 
 bool PsychicHandler::filter(PsychicRequest *request)
 {
-  return _filter == NULL || _filter(request);
+  return _filter == nullptr || _filter(request);
 }
 
 void PsychicHandler::setSubprotocol(const std::string &subprotocol)
@@ -63,7 +63,7 @@ esp_err_t PsychicHandler::authenticate(PsychicRequest *request)
 PsychicClient *PsychicHandler::checkForNewClient(PsychicClient *client)
 {
   PsychicClient *c = PsychicHandler::getClient(client);
-  if (c == NULL)
+  if (c == nullptr)
   {
     c = client;
     addClient(c);
@@ -98,7 +98,7 @@ PsychicClient *PsychicHandler::getClient(int socket)
 {
   // make sure the server has it too.
   if (!_server->hasClient(socket))
-    return NULL;
+    return nullptr;
 
   // what about us?
   for (PsychicClient *client : _clients)
@@ -106,7 +106,7 @@ PsychicClient *PsychicHandler::getClient(int socket)
       return client;
 
   // nothing found.
-  return NULL;
+  return nullptr;
 }
 
 PsychicClient *PsychicHandler::getClient(PsychicClient *client)
@@ -116,7 +116,7 @@ PsychicClient *PsychicHandler::getClient(PsychicClient *client)
 
 bool PsychicHandler::hasClient(PsychicClient *socket)
 {
-  return PsychicHandler::getClient(socket) != NULL;
+  return PsychicHandler::getClient(socket) != nullptr;
 }
 
 const std::list<PsychicClient *> &PsychicHandler::getClientList()

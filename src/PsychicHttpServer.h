@@ -4,11 +4,9 @@
 #include "PsychicCore.h"
 #include "PsychicClient.h"
 #include "PsychicHandler.h"
-#include "PsychicEndpoint.h"
-// #include "PsychicStaticFileHandler.h"
 
-// class PsychicEndpoint;
-// class PsychicHandler;
+class PsychicEndpoint;
+class PsychicHandler;
 class PsychicStaticFileHandler;
 
 class PsychicHttpServer
@@ -74,10 +72,10 @@ class PsychicHttpServer
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 
-    PsychicStaticFileHandler* serveStatic(const char* uri, const char* path, const char* cache_control = NULL);
+    PsychicStaticFileHandler* serveStatic(const char* uri, const char* path, const char* cache_control = nullptr);
 };
 
-// bool ON_STA_FILTER(PsychicRequest *request);
-// bool ON_AP_FILTER(PsychicRequest *request);
+bool ON_STA_FILTER(PsychicRequest *request);
+bool ON_AP_FILTER(PsychicRequest *request);
 
 #endif // PsychicHttpServer_h

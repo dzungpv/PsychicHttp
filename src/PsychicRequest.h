@@ -41,7 +41,7 @@ class PsychicRequest {
     void _parsePOSTParams();
 
     std::string _extractParam(const std::string &authReq, const std::string &param, char delimit);
-    const char* _getRandomHexString();
+    const std::string _getRandomHexString();
 
   public:
     PsychicRequest(PsychicHttpServer *server, httpd_req_t *req);
@@ -82,8 +82,8 @@ class PsychicRequest {
     const char * url() { return uri(); }            //compatability function.  same as uri()
 
     void loadParams();
-    PsychicWebParameter * addParam(const std::string& name, const std::string& value, bool decode = true, bool post = false);
     PsychicWebParameter * addParam(PsychicWebParameter* param);
+    PsychicWebParameter * addParam(const std::string& name, const std::string& value, bool decode = true, bool post = false);
     bool hasParam(const char *key);
     PsychicWebParameter * getParam(const char *name);
 

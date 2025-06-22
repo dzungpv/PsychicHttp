@@ -1,4 +1,8 @@
 ## This is a WIP. Porting to ESP_IDF removing all Arduino dependencies.
+* Finish all porting except missing below. Passed basic test but not intensive test, check the examples/CppEspIdf
+* Missing:
+- TemplatePrinter
+- PsychicStreamResponse
 
 # PsychicHttp - HTTP on your ESP 🧙🔮
 

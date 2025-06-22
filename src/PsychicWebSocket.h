@@ -11,7 +11,6 @@ class PsychicWebSocketClient;
 typedef std::function<void(PsychicWebSocketClient *client)> PsychicWebSocketClientCallback;
 typedef std::function<esp_err_t(PsychicWebSocketRequest *request, httpd_ws_frame *frame)> PsychicWebSocketFrameCallback;
 
-
 class PsychicWebSocketClient : public PsychicClient
 {
   public:

@@ -3,18 +3,19 @@
 #include "PsychicHttpServer.h"
 #include "esp_log.h"
 
-PsychicRequest::PsychicRequest(PsychicHttpServer *server, httpd_req_t *req) : _server(server),
-                                                                              _req(req),
-                                                                              _method(HTTP_GET),
-                                                                              _query(""),
-                                                                              _body(""),
-                                                                              _tempObject(NULL)
+PsychicRequest::PsychicRequest(PsychicHttpServer *server, httpd_req_t *req) :
+  _server(server),
+  _req(req),
+  _method(HTTP_GET),
+  _query(""),
+  _body(""),
+  _tempObject(nullptr)
 {
   // load up our client.
   this->_client = server->getClient(req);
 
   // handle our session data
-  if (req->sess_ctx != NULL)
+  if (req->sess_ctx != nullptr)
     this->_session = (SessionData *)req->sess_ctx;
   else
   {
@@ -32,7 +33,7 @@ PsychicRequest::PsychicRequest(PsychicHttpServer *server, httpd_req_t *req) : _s
 PsychicRequest::~PsychicRequest()
 {
   // temorary user object
-  if (_tempObject != NULL)
+  if (_tempObject != nullptr)
     free(_tempObject);
 
   // our web parameters
@@ -43,7 +44,7 @@ PsychicRequest::~PsychicRequest()
 
 void PsychicRequest::freeSession(void *ctx)
 {
-  if (ctx != NULL)
+  if (ctx != nullptr)
   {
     SessionData *session = (SessionData *)ctx;
     delete session;
@@ -198,7 +199,7 @@ std::string PsychicRequest::path() {
 
 const char *PsychicRequest::uri() const
 {
-  return _uri;
+  return this->_uri;
 }
 
 const std::string &PsychicRequest::query() const
@@ -215,6 +216,7 @@ std::string PsychicRequest::header(const char *name)
 {
   size_t header_len = httpd_req_get_hdr_value_len(this->_req, name);
 
+  //if we've got one, allocated it and load it
   if (header_len)
   {
     std::string header(header_len + 1, '\0'); // Allocate space, including null terminator
@@ -226,8 +228,9 @@ std::string PsychicRequest::header(const char *name)
       return header;
     }
   }
-
-  return {};
+  // No such header → return empty string
+  return "";
+  // return {}; // why empty header like this?
 }
 
 bool PsychicRequest::hasHeader(const char *name)
@@ -238,13 +241,11 @@ bool PsychicRequest::hasHeader(const char *name)
 std::string PsychicRequest::host()
 {
   return this->header("Host");
-  // return nullptr;
 }
 
 std::string PsychicRequest::contentType()
 {
   return header("Content-Type");
-  // return nullptr;
 }
 
 size_t PsychicRequest::contentLength() const
@@ -297,7 +298,7 @@ std::string PsychicRequest::getCookie(const char *key)
   if (err == ESP_OK)
     return std::string(cookie);
   else
-    return std::string();
+    return "";
 }
 
 void PsychicRequest::loadParams()
@@ -309,7 +310,6 @@ void PsychicRequest::loadParams()
         std::string query(query_len + 1, '\0');
         if (httpd_req_get_url_query_str(_req, &query[0], query_len + 1) == ESP_OK)
         {
-            // query.resize(strnlen(query.c_str(), query_len));  // Trim any extra nulls
             _query += query; // Append to _query (make sure _query is a std::string)
             _addParams(_query, false);
         }
@@ -351,6 +351,7 @@ PsychicWebParameter* PsychicRequest::addParam(const std::string& name, const std
 
 PsychicWebParameter* PsychicRequest::addParam(PsychicWebParameter* param)
 {
+    // ESP_LOGD(PH_TAG, "Adding param: '%s' = '%s'", param->name().c_str(), param->value().c_str());
     _params.push_back(param);
     return param;
 }
@@ -381,7 +382,7 @@ const std::string PsychicRequest::getSessionKey(const std::string& key)
     if (it != this->_session->end())
         return it->second;
     else
-        return std::string();
+        return "";
 }
 
 void PsychicRequest::setSessionKey(const std::string &key, const std::string &value)
@@ -389,24 +390,6 @@ void PsychicRequest::setSessionKey(const std::string &key, const std::string &va
   this->_session->insert(std::pair<std::string, std::string>(key, value));
 }
 
-// static const String md5str(const String &in)
-// {
-//   MD5Builder md5 = MD5Builder();
-//   md5.begin();
-//   md5.add(in);
-//   md5.calculate();
-//   return md5.toString();
-// }
-
-// Helper: trim whitespace from both ends of a string (you must implement this)
-std::string trim(const std::string &s) {
-  const char* whitespace = " \t\n\r";
-  size_t start = s.find_first_not_of(whitespace);
-  if (start == std::string::npos)
-      return "";
-  size_t end = s.find_last_not_of(whitespace);
-  return s.substr(start, end - start + 1);
-}
 std::string md5str(const std::string& input)
 {
     unsigned char digest[16]; // MD5 produces 128 bits (16 bytes)
@@ -426,6 +409,18 @@ std::string md5str(const std::string& input)
 
     return std::string(hex_output);
 }
+
+
+// Helper: trim whitespace from both ends of a string (you must implement this)
+std::string trim(const std::string &s) {
+  const char* whitespace = " \t\n\r";
+  size_t start = s.find_first_not_of(whitespace);
+  if (start == std::string::npos)
+      return "";
+  size_t end = s.find_last_not_of(whitespace);
+  return s.substr(start, end - start + 1);
+}
+
 
 bool PsychicRequest::authenticate(const char* username, const char* password)
 {
@@ -461,6 +456,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
         std::string _username = _extractParam(authReq, "username=\"", '\"');
         if (_username.empty() || _username != username) return false;
 
+        // extracting required parameters for RFC 2069 simpler Digest
         std::string _realm = _extractParam(authReq, "realm=\"", '\"');
         std::string _nonce = _extractParam(authReq, "nonce=\"", '\"');
         std::string _uri = _extractParam(authReq, "uri=\"", '\"');
@@ -473,6 +469,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
             _nonce != getSessionKey("nonce") ||
             _realm != getSessionKey("realm")) return false;
 
+        // parameters for the RFC 2617 newer Digest
         std::string _nc, _cnonce;
         if (authReq.find("qop=auth") != std::string::npos || authReq.find("qop=\"auth\"") != std::string::npos)
         {
@@ -481,6 +478,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
         }
 
         std::string _H1 = md5str(username + std::string(":") + _realm + ":" + password);
+        //ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1.c_str());
 
         std::string _methodStr;
         switch (_method)
@@ -493,6 +491,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
         }
 
         std::string _H2 = md5str(_methodStr + _uri);
+		//ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
 
         std::string _responseCheck;
         if (authReq.find("qop=auth") != std::string::npos || authReq.find("qop=\"auth\"") != std::string::npos)
@@ -503,7 +502,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
         {
             _responseCheck = md5str(_H1 + ':' + _nonce + ':' + _H2);
         }
-
+        //ESP_LOGD(PH_TAG, "The Proper response=%s", _responsecheck.c_str());
         return _resp == _responseCheck;
     }
 
@@ -523,7 +522,7 @@ std::string PsychicRequest::_extractParam(const std::string &authReq, const std:
     return authReq.substr(begin, end - begin);
 }
 
-const char *PsychicRequest::_getRandomHexString()
+const std::string PsychicRequest::_getRandomHexString()
 {
   char buffer[33]; // buffer to hold 32 Hex Digit + /0
   int i;
@@ -531,8 +530,7 @@ const char *PsychicRequest::_getRandomHexString()
   {
     sprintf(buffer + (i * 8), "%08lx", (unsigned long int)esp_random());
   }
-  // return String(buffer);.
-  return "";
+  return std::string(buffer);
 }
 
 esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg)

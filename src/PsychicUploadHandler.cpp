@@ -1,6 +1,7 @@
 #include "PsychicUploadHandler.h"
 #include <algorithm>
 #include <cctype>
+#include <esp_log.h>
 
 // Helper function for case-insensitive string comparison
 static bool iequals(const std::string& a, const std::string& b) {
@@ -73,7 +74,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
   //we can also call onRequest for some final processing and response
   if (err == ESP_OK)
   {
-    if (_requestCallback != NULL)
+    if (_requestCallback != nullptr)
       err = _requestCallback(request);
     else
       err = request->reply("Upload Successful.");
@@ -122,7 +123,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
     }
 
     //call our upload callback here.
-    if (_uploadCallback != NULL)
+    if (_uploadCallback != nullptr)
     {
       err = _uploadCallback(request, filename, index, (uint8_t *)buf, received, (remaining - received == 0));
       if (err != ESP_OK)
@@ -151,15 +152,21 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicRequest *request)
   esp_err_t err = ESP_OK;
 
   std::string value = request->header("Content-Type");
-  if (value.rfind("multipart/", 0) == 0){
-    size_t bpos = value.find("boundary=");
-    if(bpos != std::string::npos) {
-      _boundary = value.substr(bpos + 9);
-      _boundary.erase(std::remove(_boundary.begin(), _boundary.end(), '"'), _boundary.end());
-    }
+  if (value.rfind("multipart/", 0) == 0)  // starts with "multipart/"
+  {
+      auto eqPos = value.find('=');
+      if (eqPos != std::string::npos) {
+          // everything after '=' is the boundary
+          _boundary = value.substr(eqPos + 1);
+          // strip out any quotes
+          _boundary.erase(std::remove(_boundary.begin(), _boundary.end(), '\"'), _boundary.end());
+      } else {
+          ESP_LOGE(PH_TAG, "Malformed Content-Type header: no '=' after multipart/");
+          return request->reply(400, "text/html", "Malformed Content-Type header.");
+      }
   } else {
-    ESP_LOGE(PH_TAG, "No multipart boundary found.");
-    return request->reply(400, "text/html", "No multipart boundary found.");
+      ESP_LOGE(PH_TAG, "No multipart boundary found.");
+      return request->reply(400, "text/html", "No multipart boundary found.");
   }
 
   char *buf = (char *)malloc(FILE_CHUNK_SIZE);
@@ -235,10 +242,10 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
   if (_multiParseState == PARSE_ERROR)
   {
     // not sure we can end up with an error during buffer fill, but jsut to be safe
-    if (_itemBuffer != NULL)
+    if (_itemBuffer != nullptr)
     {
       free(_itemBuffer);    
-      _itemBuffer = NULL;
+      _itemBuffer = nullptr;
     }
 
     return;
@@ -321,7 +328,7 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
           if(_itemBuffer)
             free(_itemBuffer);
           _itemBuffer = (uint8_t*)malloc(FILE_CHUNK_SIZE);
-          if(_itemBuffer == NULL){
+          if(_itemBuffer == nullptr){
             ESP_LOGE(PH_TAG, "Multipart: Failed to allocate buffer");
             _multiParseState = PARSE_ERROR;
             return;
@@ -373,7 +380,7 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last)
           _request->addParam(new PsychicWebParameter(_itemName, _itemFilename, true, true, _itemSize));
         }
         free(_itemBuffer);
-        _itemBuffer = NULL;
+        _itemBuffer = nullptr;
       }
 
     } else {

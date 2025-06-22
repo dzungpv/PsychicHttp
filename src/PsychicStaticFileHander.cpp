@@ -7,14 +7,20 @@
 PsychicStaticFileHandler::PsychicStaticFileHandler(const char* uri, const char* path, const char* cache_control)
   : _uri(uri), _path(path), _cache_control(cache_control ? cache_control : ""), _default_file("index.html"), _last_modified(""), _file(nullptr)
 {
+// Ensure leading '/'
   if (_uri.empty() || _uri[0] != '/') _uri = "/" + _uri;
   if (_path.empty() || _path[0] != '/') _path = "/" + _path;
 
+  // If path ends with '/' we assume a hint that this is a directory to improve performance.
+  // However - if it does not end with '/' we, can't assume a file, path can still be a directory.
   _isDir = !_path.empty() && _path.back() == '/';
-
+  
+  // Remove the trailing '/' so we can handle default file
+  // Notice that root will be "" not "/"
   if (!_uri.empty() && _uri.back() == '/') _uri.pop_back();
   if (!_path.empty() && _path.back() == '/') _path.pop_back();
 
+  // Reset stats
   _gzipFirst = false;
   _gzipStats = 0xF8;
 }
@@ -68,6 +74,7 @@ bool PsychicStaticFileHandler::_getFile(PsychicRequest *request)
     path = path.substr(_uri.length());  // Remove the matched prefix
   }
 
+  // We can skip the file check and look for default if request is to the root of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.empty()) || (!path.empty() && path.back() == '/');
 
   path = _path + path;
@@ -76,10 +83,12 @@ bool PsychicStaticFileHandler::_getFile(PsychicRequest *request)
     return true;
   }
 
+  // Can't handle if not default file
   if (_default_file.empty()) {
     return false;
   }
 
+  // Try to add default file, ensure there is a trailing '/' ot the path.
   if (path.empty() || path.back() != '/') {
     path += "/";
   }
@@ -114,10 +123,11 @@ bool PsychicStaticFileHandler::_fileExists(const std::string& path) {
   if (found) {
     _filename = fileFound ? path : gzip;
 
+    // Calculate gzip statistic
     _gzipStats = (_gzipStats << 1) + (gzipFound ? 1 : 0);
-    if (_gzipStats == 0x00) _gzipFirst = false;
-    else if (_gzipStats == 0xFF) _gzipFirst = true;
-    else _gzipFirst = _countBits(_gzipStats) > 4;
+    if (_gzipStats == 0x00) _gzipFirst = false; // All files are not gzip
+    else if (_gzipStats == 0xFF) _gzipFirst = true; // All files are gzip
+    else _gzipFirst = _countBits(_gzipStats) > 4; // If we have more gzip files - try gzip first
   }
 
   return found;
@@ -146,13 +156,15 @@ size_t PsychicStaticFileHandler::_getFileSize(FILE* f) {
 
 esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest *request) {
   if (_file) {
+    //is it not modified?
     std::string etag = std::to_string(_getFileSize(_file));
 
     if (!_last_modified.empty() && _last_modified == request->header("If-Modified-Since")) {
       fclose(_file);
       _file = nullptr;
-      request->reply(304);
+      request->reply(304); // Not modified
     }
+    //does our Etag match?
     else if (!_cache_control.empty() && request->hasHeader("If-None-Match") && request->header("If-None-Match") == etag) {
       fclose(_file);
       _file = nullptr;
@@ -163,6 +175,7 @@ esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest *request) {
       response.setCode(304);
       response.send();
     }
+    //nope, send them the full file.
     else {
       PsychicFileResponse response(request, _filename.c_str());
 

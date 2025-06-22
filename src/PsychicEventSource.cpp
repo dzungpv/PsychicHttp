@@ -27,8 +27,8 @@
 
 PsychicEventSource::PsychicEventSource() :
   PsychicHandler(),
-  _onOpen(NULL),
-  _onClose(NULL)
+  _onOpen(nullptr),
+  _onClose(nullptr)
 {}
 
 PsychicEventSource::~PsychicEventSource() {
@@ -38,8 +38,8 @@ PsychicEventSourceClient * PsychicEventSource::getClient(int socket)
 {
   PsychicClient *client = PsychicHandler::getClient(socket);
 
-  if (client == NULL)
-    return NULL;
+  if (client == nullptr)
+    return nullptr;
 
   return (PsychicEventSourceClient *)client->_friend;
 }
@@ -90,28 +90,28 @@ void PsychicEventSource::addClient(PsychicClient *client) {
 void PsychicEventSource::removeClient(PsychicClient *client) {
   PsychicHandler::removeClient(client);
   delete (PsychicEventSourceClient*)client->_friend;
-  client->_friend = NULL;
+  client->_friend = nullptr;
 }
 
 void PsychicEventSource::openCallback(PsychicClient *client) {
   PsychicEventSourceClient *buddy = getClient(client);
-  if (buddy == NULL)
+  if (buddy == nullptr)
   {
     return;
   }
 
-  if (_onOpen != NULL)
+  if (_onOpen != nullptr)
     _onOpen(buddy);
 }
 
 void PsychicEventSource::closeCallback(PsychicClient *client) {
   PsychicEventSourceClient *buddy = getClient(client);
-  if (buddy == NULL)
+  if (buddy == nullptr)
   {
     return;
   }
 
-  if (_onClose != NULL)
+  if (_onClose != nullptr)
     _onClose(getClient(buddy));
 }
 
@@ -182,15 +182,16 @@ esp_err_t PsychicEventSourceResponse::send() {
 
   int result;
   do {
-      result = httpd_send(_request->request(), out.c_str(), out.length());
+    result = httpd_send(_request->request(), out.c_str(), out.length());
   } while (result == HTTPD_SOCK_ERR_TIMEOUT);
 
-  if (result < 0) {
-      ESP_LOGE(PH_TAG, "EventSource send failed with %s", esp_err_to_name(result));
-      return ESP_ERR_HTTPD_RESP_SEND;
-  }
+  if (result < 0)
+    ESP_LOGE(PH_TAG, "EventSource send failed with %s", esp_err_to_name(result));
 
-  return ESP_OK;
+  if (result > 0)
+    return ESP_OK;
+  else
+    return ESP_ERR_HTTPD_RESP_SEND;
 }
 
 /*****************************************/

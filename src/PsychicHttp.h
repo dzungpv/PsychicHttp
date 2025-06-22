@@ -12,7 +12,7 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicFileResponse.h"
 // #include "PsychicStreamResponse.h"
-// #include "PsychicUploadHandler.h"
+#include "PsychicUploadHandler.h"
 #include "PsychicWebSocket.h"
 #include "PsychicEventSource.h"
 #include "PsychicJson.h"

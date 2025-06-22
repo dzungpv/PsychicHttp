@@ -39,41 +39,40 @@ void PsychicResponse::addHeader(const char *field, const char *value)
 
 void PsychicResponse::setCookie(const char *name, const char *value, unsigned long secondsFromNow, const char *extras)
 {
-    time_t now = time(nullptr);
+  time_t now = time(nullptr);
 
-    // Build the cookie value: URL-encode name and value
-    std::string output = urlEncode(name) + "=" + urlEncode(value);
+  std::string output = urlEncode(name) + "=" + urlEncode(value);
 
-    // If the current time is before a "modern" timestamp, use Max-Age
-    if (now < 1700000000) {
-        output += "; Max-Age=" + std::to_string(secondsFromNow);
-    }
-    // Otherwise, use an Expires date
-    else {
-        time_t expirationTimestamp = now + secondsFromNow;
-        struct tm tmInfo;
-        // Use thread-safe gmtime_r instead of gmtime
-        gmtime_r(&expirationTimestamp, &tmInfo);
-        char expires[30];
-        strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", &tmInfo);
-        output += "; Expires=" + std::string(expires);
-    }
+  //if current time isn't modern, default to using max age
+  if (now < 1700000000)
+    output += "; Max-Age=" + std::to_string(secondsFromNow);    
+  //otherwise, set an expiration date
+  else
+  {
+    time_t expirationTimestamp = now + secondsFromNow;
 
-    // If any extras were provided, append them
-    if (extras && strlen(extras) > 0) {
-        output += "; " + std::string(extras);
-    }
+    // Convert the expiration timestamp to a formatted string for the "expires" attribute
+    struct tm tmInfo;
+    // Use thread-safe gmtime_r instead of gmtime
+    gmtime_r(&expirationTimestamp, &tmInfo);
+    char expires[30];
+    strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", &tmInfo);
+    output += "; Expires=" +  std::string(expires);
+  }
 
-    // Finally, add the header to the response.
-    // Assume addHeader is a member function that takes a const char* key and value.
-    addHeader("Set-Cookie", output.c_str());
+  //did we get any extras?
+  if (extras && strlen(extras))
+    output += "; " + std::string(extras);
+
+  //okay, add it in.
+  addHeader("Set-Cookie", output.c_str());
 }
+
 
 void PsychicResponse::setCode(int code)
 {
   _code = code;
 }
-
 
 void PsychicResponse::setContentType(const char *contentType)
 {
@@ -151,7 +150,7 @@ esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
     ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
 
     /* Abort sending file */
-    httpd_resp_sendstr_chunk(this->_request->request(), NULL);
+    httpd_resp_sendstr_chunk(this->_request->request(), nullptr);
 
     /* Respond with 500 Internal Server Error */
     httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
@@ -163,5 +162,5 @@ esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
 esp_err_t PsychicResponse::finishChunking()
 {
   /* Respond with an empty chunk to signal HTTP response completion */
-  return httpd_resp_send_chunk(this->_request->request(), NULL, 0);
+  return httpd_resp_send_chunk(this->_request->request(), nullptr, 0);
 }
