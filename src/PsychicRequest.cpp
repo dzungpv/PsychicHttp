@@ -483,7 +483,7 @@ bool PsychicRequest::authenticate(const char *username, const char *password) {
         std::string authReq = header("Authorization");
         if (authReq.rfind("Basic", 0) == 0) {
             // Basic authentication
-            authReq.erase(0, 6);
+            authReq = authReq.substr(6);
             trim(authReq);
 
             size_t toencodeLen = strlen(username) + strlen(password) + 1;
@@ -511,10 +511,10 @@ bool PsychicRequest::authenticate(const char *username, const char *password) {
             delete[] encoded;
         } else if (authReq.rfind("Digest", 0) == 0) {
             // Digest authentication
-            authReq.erase(0, 7);
+            authReq = authReq.substr(6);
 
             std::string _username = _extractParam(authReq, "username=\"", '\"');
-            if (_username.empty() || _username != username) {
+            if (_username.empty() || strcmp(_username.c_str(), username)) {
                 return false;
             }
             // extracting required parameters for RFC 2069 simpler Digest
@@ -527,9 +527,11 @@ bool PsychicRequest::authenticate(const char *username, const char *password) {
             if (_realm.empty() || _nonce.empty() || _uri.empty() || _resp.empty() || _opaque.empty()) {
                 return false;
             }
+			// Fixme: sessions empty the fist timem login success on the second time
             if (_opaque != getSessionKey("opaque") ||
                 _nonce != getSessionKey("nonce") ||
                 _realm != getSessionKey("realm")) {
+                ESP_LOGE(PH_TAG, "authenticate: empty session params: _opaque _nonce or _realm");
                 return false;
             }
             // parameters for the RFC 2617 newer Digest
@@ -561,7 +563,7 @@ bool PsychicRequest::authenticate(const char *username, const char *password) {
                     break;
             }
             std::string _H2 = md5str(methodPrefix + _uri);
-            ESP_LOGE(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
+            ESP_LOGI(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
 
             std::string _responsecheck;
             if (authReq.find("qop=auth") != std::string::npos || authReq.find("qop=\"auth\"") != std::string::npos) {
@@ -569,7 +571,7 @@ bool PsychicRequest::authenticate(const char *username, const char *password) {
             } else {
                 _responsecheck = md5str(_H1 + ":" + _nonce + ":" + _H2);
             }
-            ESP_LOGE(PH_TAG, "The Proper response=%s", _responsecheck.c_str());
+            ESP_LOGI(PH_TAG, "The Proper response=%s", _responsecheck.c_str());
 
             if (_resp == _responsecheck) {
                 return true;
