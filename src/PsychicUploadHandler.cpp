@@ -3,13 +3,19 @@
 #include <cctype>
 #include <esp_log.h>
 
-// Helper function for case-insensitive string comparison
+// Helper function for case-insensitive string comparison, C++ 11
 static bool iequals(const std::string& a, const std::string& b) {
-    return std::equal(a.begin(), a.end(),
-                      b.begin(), b.end(),
-                      [](char a, char b) {
-                          return tolower(a) == tolower(b);
-                      });
+    // first, lengths must match
+    if (a.size() != b.size()) return false;
+
+    for (size_t i = 0; i < a.size(); ++i) {
+        unsigned char ca = static_cast<unsigned char>(a[i]);
+        unsigned char cb = static_cast<unsigned char>(b[i]);
+        if (std::tolower(ca) != std::tolower(cb)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 PsychicUploadHandler::PsychicUploadHandler() : 

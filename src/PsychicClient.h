@@ -28,9 +28,13 @@ class PsychicClient {
     httpd_handle_t server();
     int socket();
     esp_err_t close();
-
+#if defined(ARDUINO)
+    IPAddress localIP();
+    IPAddress remoteIP();
+#else
     ip4_addr_t localIP();
     ip4_addr_t remoteIP();
+#endif
 };
 
 #endif

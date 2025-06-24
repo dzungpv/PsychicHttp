@@ -1,39 +1,40 @@
-# name: ESP-IDF
+name: ESP-IDF
 
-# on:
-#   push:
-#     branches: []
-#   pull_request:
-#     branches: []
-#   schedule:
-#     - cron: "0 1 * * 6" # Every Saturday at 1AM
+on:
+  push:
+    branches: []
+  pull_request:
+    branches: []
+  schedule:
+    - cron: "0 1 * * 6" # Every Saturday at 1AM
 
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
-# jobs:
+jobs:
 
-#   build:
-#     name: "ESP-IDF ${{ matrix.idf_ver }}"
-#     runs-on: ubuntu-latest
-#     timeout-minutes: 10
+  build:
+    name: "ESP-IDF ${{ matrix.idf_ver }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-#     strategy:
-#       fail-fast: false
-#       matrix:
-#         idf_ver: ["v4.4.7", "v5.1.4", "v5.3.2"]
-#         idf_target: ["esp32"]
+    strategy:
+      fail-fast: false
+      matrix:
+        #idf_ver: ["v4.4.7", "v5.1.4", "v5.3.2"]
+        idf_ver: ["v5.4.1"]
+        idf_target: ["esp32"]
 
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           path: ${{ github.workspace }}/app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/app
 
-#       - name: Compile
-#         uses: espressif/esp-idf-ci-action@v1
-#         with:
-#           esp_idf_version: ${{ matrix.idf_ver }}
-#           target: ${{ matrix.idf_target }}
-#           path: app/examples/esp-idf
-#           command: apt-get update && apt-get install -y python3-venv && idf.py build
+      - name: Compile
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.idf_ver }}
+          target: ${{ matrix.idf_target }}
+          path: app/examples/esp-idf
+          command: apt-get update && apt-get install -y python3-venv && idf.py build

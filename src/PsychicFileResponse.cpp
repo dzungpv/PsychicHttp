@@ -130,39 +130,39 @@ void PsychicFileResponse::_setContentType(const std::string &path)
 {
   const char* contentType;
 
-  if (path.ends_with(".html") || path.ends_with(".htm"))
+  if (endsWith(path, ".html") || endsWith(path, ".htm"))
     contentType = "text/html";
-  else if (path.ends_with(".css"))
+  else if (endsWith(path, ".css"))
     contentType = "text/css";
-  else if (path.ends_with(".json"))
+  else if (endsWith(path, ".json"))
     contentType = "application/json";
-  else if (path.ends_with(".js"))
+  else if (endsWith(path, ".js"))
     contentType = "application/javascript";
-  else if (path.ends_with(".png"))
+  else if (endsWith(path, ".png"))
     contentType = "image/png";
-  else if (path.ends_with(".gif"))
+  else if (endsWith(path, ".gif"))
     contentType = "image/gif";
-  else if (path.ends_with(".jpg"))
+  else if (endsWith(path, ".jpg"))
     contentType = "image/jpeg";
-  else if (path.ends_with(".ico"))
+  else if (endsWith(path, ".ico"))
     contentType = "image/x-icon";
-  else if (path.ends_with(".svg"))
+  else if (endsWith(path, ".svg"))
     contentType = "image/svg+xml";
-  else if (path.ends_with(".eot"))
+  else if (endsWith(path, ".eot"))
     contentType = "font/eot";
-  else if (path.ends_with(".woff"))
+  else if (endsWith(path, ".woff"))
     contentType = "font/woff";
-  else if (path.ends_with(".woff2"))
+  else if (endsWith(path, ".woff2"))
     contentType = "font/woff2";
-  else if (path.ends_with(".ttf"))
+  else if (endsWith(path, ".ttf"))
     contentType = "font/ttf";
-  else if (path.ends_with(".xml"))
+  else if (endsWith(path, ".xml"))
     contentType = "text/xml";
-  else if (path.ends_with(".pdf"))
+  else if (endsWith(path, ".pdf"))
     contentType = "application/pdf";
-  else if (path.ends_with(".zip"))
+  else if (endsWith(path, ".zip"))
     contentType = "application/zip";
-  else if (path.ends_with(".gz"))
+  else if (endsWith(path, ".gz"))
     contentType = "application/x-gzip";
   else
     contentType = "text/plain";

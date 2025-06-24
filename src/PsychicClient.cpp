@@ -30,6 +30,52 @@ esp_err_t PsychicClient::close()
   return err;
 }
 
+#if defined(ARDUINO)
+
+IPAddress PsychicClient::localIP()
+{
+  IPAddress address(0,0,0,0);
+
+  char ipstr[INET6_ADDRSTRLEN];
+  struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+  socklen_t addr_size = sizeof(addr);
+
+  if (getsockname(_socket, (struct sockaddr *)&addr, &addr_size) < 0) {
+    ESP_LOGE(PH_TAG, "Error getting client IP");
+    return address;
+  }
+
+  // Convert to IPv4 string
+  inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr));
+  //ESP_LOGD(PH_TAG, "Client Local IP => %s", ipstr);
+  address.fromString(ipstr);
+
+  return address;
+}
+
+IPAddress PsychicClient::remoteIP()
+{
+  IPAddress address(0,0,0,0);
+
+  char ipstr[INET6_ADDRSTRLEN];
+  struct sockaddr_in6 addr;   // esp_http_server uses IPv6 addressing
+  socklen_t addr_size = sizeof(addr);
+
+  if (getpeername(_socket, (struct sockaddr *)&addr, &addr_size) < 0) {
+    ESP_LOGE(PH_TAG, "Error getting client IP");
+    return address;
+  }
+
+  // Convert to IPv4 string
+  inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr));
+  //ESP_LOGD(PH_TAG, "Client Remote IP => %s", ipstr);
+  address.fromString(ipstr);
+
+  return address;
+}
+
+#else
+
 // Return type: ip4_addr_t from lwIP.
 ip4_addr_t PsychicClient::localIP() {
   ip4_addr_t ip_addr;
@@ -79,3 +125,5 @@ ip4_addr_t PsychicClient::remoteIP() {
   ip_addr.addr = ipaddr_addr(ipstr);
   return ip_addr;
 }
+
+#endif

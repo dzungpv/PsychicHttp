@@ -6,9 +6,13 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebSocket.h"
 #include "PsychicJson.h"
+#if defined(ARDUINO)
+#include "WiFi.h"
+#else
 #include "esp_netif.h"
 #include "esp_wifi.h"
 #include <lwip/ip4_addr.h>
+#endif
 
 PsychicHttpServer::PsychicHttpServer():
   _onOpen(nullptr),
@@ -327,6 +331,20 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList() {
   return _clients;
 }
 
+
+
+#if defined(ARDUINO)
+
+bool ON_STA_FILTER(PsychicRequest *request) {
+  return WiFi.localIP() == request->client()->localIP();
+}
+
+bool ON_AP_FILTER(PsychicRequest *request) {
+  return WiFi.softAPIP() == request->client()->localIP();
+}
+
+#else
+
 /* Function to get Wifi IP in AP and STA mode*/
 ip4_addr_t getWifiIp(bool apMode) {
     esp_netif_ip_info_t ip_info;
@@ -353,6 +371,8 @@ bool ON_AP_FILTER(PsychicRequest *request) {
   ip4_addr_t client_ip = request->client()->localIP();
   return ip4_addr_cmp(&ap_ip, &client_ip);
 }
+
+#endif
 
 std::string urlDecode(const std::string &encoded) {
     std::string decoded;

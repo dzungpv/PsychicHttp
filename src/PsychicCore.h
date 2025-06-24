@@ -38,9 +38,14 @@
 #include <functional> // Required for std::function
 #include "esp_log.h"  // ESP LOG
 
-// #include <libb64/cencode.h>
 #include "esp_random.h"
-// #include "MD5Builder.h"
+#if defined(ARDUINO)
+#include <libb64/cencode.h>
+#include "MD5Builder.h"
+#else // ESP IDF using mbedtls for base64 and md5
+#include <mbedtls/base64.h>
+#include <mbedtls/md5.h>
+#endif
 // #include <UrlEncode.h>
 // #include "FS.h"
 #include <ArduinoJson.h>

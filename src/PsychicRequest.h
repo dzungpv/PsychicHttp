@@ -7,8 +7,6 @@
 #include "PsychicWebParameter.h"
 #include "PsychicResponse.h"
 #include <string>
-#include <mbedtls/base64.h>
-#include <mbedtls/md5.h>
 
 typedef std::map<std::string, std::string> SessionData;
 
