@@ -174,7 +174,7 @@ bool PsychicEventSourceClient::sendEvent(const char *event) {
   } while (result == HTTPD_SOCK_ERR_TIMEOUT);
 
   if (result < 0) {
-    ESP_LOGD(TAG_PH, "sendEvent to socket %d failed. Client likely disconnected.", this->socket());
+    ESP_LOGD(PH_TAG, "sendEvent to socket %d failed. Client likely disconnected.", this->socket());
     return false;
   }
   return true;
