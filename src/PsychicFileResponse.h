@@ -14,6 +14,7 @@ class PsychicFileResponse: public PsychicResponse
     // File _content;
     FILE* _content;
     void _setContentType(const std::string& path);
+    bool _endsWith(const std::string& value, const std::string& ending);
   public:
     PsychicFileResponse(PsychicRequest *request, const std::string& path, const std::string& contentType=std::string(), bool download=false);
     PsychicFileResponse(PsychicRequest *request, FILE* content, const std::string& path, const std::string& contentType=std::string(), bool download=false);

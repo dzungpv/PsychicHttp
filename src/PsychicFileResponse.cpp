@@ -120,7 +120,7 @@ PsychicFileResponse::~PsychicFileResponse()
     fclose(_content);
 }
 
-bool endsWith(const std::string& value, const std::string& ending)
+bool PsychicFileResponse::_endsWith(const std::string& value, const std::string& ending)
 {
   if (ending.size() > value.size()) return false;
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
@@ -130,39 +130,39 @@ void PsychicFileResponse::_setContentType(const std::string &path)
 {
   const char* contentType;
 
-  if (endsWith(path, ".html") || endsWith(path, ".htm"))
+  if (_endsWith(path, ".html") || _endsWith(path, ".htm"))
     contentType = "text/html";
-  else if (endsWith(path, ".css"))
+  else if (_endsWith(path, ".css"))
     contentType = "text/css";
-  else if (endsWith(path, ".json"))
+  else if (_endsWith(path, ".json"))
     contentType = "application/json";
-  else if (endsWith(path, ".js"))
+  else if (_endsWith(path, ".js"))
     contentType = "application/javascript";
-  else if (endsWith(path, ".png"))
+  else if (_endsWith(path, ".png"))
     contentType = "image/png";
-  else if (endsWith(path, ".gif"))
+  else if (_endsWith(path, ".gif"))
     contentType = "image/gif";
-  else if (endsWith(path, ".jpg"))
+  else if (_endsWith(path, ".jpg"))
     contentType = "image/jpeg";
-  else if (endsWith(path, ".ico"))
+  else if (_endsWith(path, ".ico"))
     contentType = "image/x-icon";
-  else if (endsWith(path, ".svg"))
+  else if (_endsWith(path, ".svg"))
     contentType = "image/svg+xml";
-  else if (endsWith(path, ".eot"))
+  else if (_endsWith(path, ".eot"))
     contentType = "font/eot";
-  else if (endsWith(path, ".woff"))
+  else if (_endsWith(path, ".woff"))
     contentType = "font/woff";
-  else if (endsWith(path, ".woff2"))
+  else if (_endsWith(path, ".woff2"))
     contentType = "font/woff2";
-  else if (endsWith(path, ".ttf"))
+  else if (_endsWith(path, ".ttf"))
     contentType = "font/ttf";
-  else if (endsWith(path, ".xml"))
+  else if (_endsWith(path, ".xml"))
     contentType = "text/xml";
-  else if (endsWith(path, ".pdf"))
+  else if (_endsWith(path, ".pdf"))
     contentType = "application/pdf";
-  else if (endsWith(path, ".zip"))
+  else if (_endsWith(path, ".zip"))
     contentType = "application/zip";
-  else if (endsWith(path, ".gz"))
+  else if (_endsWith(path, ".gz"))
     contentType = "application/x-gzip";
   else
     contentType = "text/plain";
