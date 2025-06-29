@@ -20,6 +20,7 @@
 
 #include "PsychicEventSource.h"
 #include "esp_log.h"
+#include <vector>
 
 /*****************************************/
 // PsychicEventSource - Handler
@@ -115,11 +116,29 @@ void PsychicEventSource::closeCallback(PsychicClient *client) {
     _onClose(getClient(buddy));
 }
 
+/**
+ * @brief Sends an event to all connected clients.
+ * * This function now safely handles client disconnections.
+ * It iterates through all clients, attempts to send the event, and collects
+ * any clients for whom the send fails. It then properly removes these
+ * disconnected clients after the loop, preventing a crash from using a stale handle.
+ */
 void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect)
 {
   std::string ev = generateEventMessage(message, event, id, reconnect);
+  std::vector<PsychicClient*> clientsToRemove;
+
+  // First, iterate and send, collecting disconnected clients
   for(PsychicClient *c : _clients) {
-    ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
+    if (!((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str())) {
+      clientsToRemove.push_back(c);
+    }
+  }
+
+  // Second, iterate through the disconnected clients and clean them up
+  for(PsychicClient *c : clientsToRemove) {
+    closeCallback(c); // Let the user application know
+    removeClient(c);  // Remove from handler and clean up memory
   }
 }
 
@@ -136,19 +155,29 @@ PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient *client) :
 PsychicEventSourceClient::~PsychicEventSourceClient(){
 }
 
-void PsychicEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
+/**
+ * @brief Returns a boolean indicating send success.
+ */
+bool PsychicEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
   std::string ev = generateEventMessage(message, event, id, reconnect);
-  sendEvent(ev.c_str());
+  return sendEvent(ev.c_str());
 }
 
-void PsychicEventSourceClient::sendEvent(const char *event) {
+/**
+ * @brief Sends data and returns true on success, false on failure.
+ * This prevents a crash by detecting if the underlying socket is closed.
+ */
+bool PsychicEventSourceClient::sendEvent(const char *event) {
   int result;
   do {
     result = httpd_socket_send(this->server(), this->socket(), event, strlen(event), 0);
   } while (result == HTTPD_SOCK_ERR_TIMEOUT);
 
-  //if (result < 0)
-  //error log here
+  if (result < 0) {
+    ESP_LOGD(TAG_PH, "sendEvent to socket %d failed. Client likely disconnected.", this->socket());
+    return false;
+  }
+  return true;
 }
 
 /*****************************************/
