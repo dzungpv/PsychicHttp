@@ -10,7 +10,6 @@
   
   ************************************************************/
  
-#if defined(ARDUINO)  
 #include "TemplatePrinter.h"
 
 void TemplatePrinter::resetParam(bool flush){
@@ -80,7 +79,8 @@ size_t TemplatePrinter::write(uint8_t data){
   }
   return 1;
 }
-    
+
+#if defined(ARDUINO)
 size_t TemplatePrinter::copyFrom(Stream &stream){
   size_t count = 0;
   
@@ -89,4 +89,13 @@ size_t TemplatePrinter::copyFrom(Stream &stream){
   
   return count;
 }
-#endif // ARDUINO
+#else
+size_t TemplatePrinter::copyFrom(FILE* stream) {
+    size_t count = 0;
+    int c;
+    while ((c = fgetc(stream)) != EOF) {
+        count += this->write(static_cast<uint8_t>(c));
+    }
+    return count;
+}
+#endif

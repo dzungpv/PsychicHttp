@@ -229,6 +229,21 @@ extern "C" void app_main()
         return req->reply(out.c_str());
     });
 
+    // Simple endpoint print your IP using PsychicStreamResponse
+    server.on("/stream", HTTP_GET, [](PsychicRequest *req) {
+        // grab the raw ip4_addr_t
+        ip4_addr_t ip = req->client()->remoteIP();
+        // format it into a C-string
+        const char *ip_string = ip4addr_ntoa(&ip);
+        // build your response
+        std::string out = std::string("Your IP is: ") + ip_string;
+        // send to browser
+        PsychicStreamResponse response(req, "text/plain");
+        response.beginSend();
+        response.print(out);
+        return response.endSend();
+    });
+
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
     server.on("/api", HTTP_GET, [](PsychicRequest *request) {
         // create a response object

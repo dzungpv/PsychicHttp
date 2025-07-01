@@ -11,9 +11,7 @@
 #include "PsychicHandler.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicFileResponse.h"
-#if defined(ARDUINO)
 #include "PsychicStreamResponse.h"
-#endif
 #include "PsychicUploadHandler.h"
 #include "PsychicWebSocket.h"
 #include "PsychicEventSource.h"

@@ -1,9 +1,8 @@
-#if defined(ARDUINO)
 #include "PsychicStreamResponse.h"
 #include "PsychicResponse.h"
 #include "PsychicRequest.h"
 
-PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const String& contentType)
+PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const std::string& contentType)
  : PsychicResponse(request), _buffer(NULL) {
 
   setContentType(contentType.c_str());
@@ -11,12 +10,12 @@ PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const Stri
 }
 
  
-PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const String& contentType, const String& name)
+PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const std::string& contentType, const std::string& name)
   : PsychicResponse(request), _buffer(NULL) {
 
   setContentType(contentType.c_str());
 
-  char buf[26+name.length()];
+  char buf[26 + name.length()];
   snprintf(buf, sizeof (buf), "attachment; filename=\"%s\"", name.c_str());
   addHeader("Content-Disposition", buf);
 }
@@ -85,12 +84,18 @@ size_t PsychicStreamResponse::write(const uint8_t *buffer, size_t size)
   return _buffer ? _printer->write(buffer, size) : 0;
 }
 
+#if defined(ARDUINO)
+size_t PsychicStreamResponse::copyFrom(Stream &stream) {
+    if (_buffer)
+        return _printer->copyFrom(stream);
 
-size_t PsychicStreamResponse::copyFrom(Stream &stream)
-{
-  if(_buffer)
-    return _printer->copyFrom(stream);
-
-  return 0;
+    return 0;
 }
-#endif // ARDUINO
+#else
+size_t PsychicStreamResponse::copyFrom(FILE *stream) {
+    if (_buffer)
+        return _printer->copyFrom(stream);
+
+    return 0;
+}
+#endif
