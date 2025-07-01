@@ -335,6 +335,16 @@ void setup()
       return request->reply(output.c_str());
     });
 
+    // Simple endpoint print your IP using PsychicStreamResponse
+    server.on("/stream", HTTP_GET, [](PsychicRequest *request) {
+        String output = "Your IP is: " + request->client()->remoteIP().toString();
+        // send to browser
+        PsychicStreamResponse response(request, "text/plain");
+        response.beginSend();
+        response.print(output.c_str());
+        return response.endSend();
+    });
+
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
     server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
