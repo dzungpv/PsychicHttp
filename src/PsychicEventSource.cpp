@@ -128,6 +128,9 @@ void PsychicEventSource::closeCallback(PsychicClient *client) {
  */
 void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect) 
 {
+    if (_clients.empty())
+        return;
+
     std::string ev = generateEventMessage(message, event, id, reconnect);
     std::vector<PsychicClient *> clientsToRemove;
 
@@ -143,6 +146,12 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
             clientsToRemove.push_back(c);
             continue;
         }
+        // Additional check: verify the base client is still valid
+        if (!c->server() || c->socket() < 0) {
+            clientsToRemove.push_back(c);
+            continue;
+        }
+
         // Send; If failed → make to delete
         if (!esc->sendEvent(ev.c_str())) {
             clientsToRemove.push_back(c);
