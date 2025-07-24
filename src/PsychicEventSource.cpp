@@ -89,12 +89,12 @@ void PsychicEventSource::addClient(PsychicClient *client) {
 }
 
 void PsychicEventSource::removeClient(PsychicClient *client) {
+  PsychicHandler::removeClient(client);
   auto buddy = static_cast<PsychicEventSourceClient *>(client->_friend);
   if (buddy) {
       delete buddy;
       client->_friend = nullptr;
   }
-  PsychicHandler::removeClient(client);
 }
 
 void PsychicEventSource::openCallback(PsychicClient *client) {
@@ -187,6 +187,9 @@ bool PsychicEventSourceClient::sendEvent(const char *event) {
   if (!event) return false;
   if (!this->server()) { 
       return false;
+  }
+  if (this->socket() < 0){
+    return false;
   }
   int result;
   do {
