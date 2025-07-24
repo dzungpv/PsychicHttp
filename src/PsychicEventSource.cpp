@@ -148,10 +148,8 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 
     // Second, iterate through the disconnected clients and clean them up
     for (PsychicClient *c : clientsToRemove) {
-        if (closeCallback)
-            closeCallback(c);  // Let the user application know
-
-        removeClient(c);  // Remove from handler and clean up memory
+        closeCallback(c);  // Let the user application know
+        removeClient(c);   // Remove from handler and clean up memory
     }
 }
 
