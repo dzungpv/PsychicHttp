@@ -133,10 +133,13 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 
     // First, iterate and send, collecting disconnected clients
     for (PsychicClient *c : _clients) {
-        // Check if c->_friend exist and right type
-        auto esc = static_cast<PsychicEventSourceClient *>(c ? c->_friend : nullptr);
+        // Extra protection: check for nullptr and invalid _friend pointer
+        if (!c || c->_friend == nullptr) {
+            clientsToRemove.push_back(c);
+            continue;
+        }
+        auto esc = static_cast<PsychicEventSourceClient *>(c->_friend);
         if (!esc) {
-            // ESP_LOGW(PH_TAG, "Client 0x%p lost its EventSource handle - scheduling removal", c);
             clientsToRemove.push_back(c);
             continue;
         }
@@ -148,8 +151,10 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 
     // Second, iterate through the disconnected clients and clean them up
     for (PsychicClient *c : clientsToRemove) {
-        closeCallback(c);  // Let the user application know
-        removeClient(c);   // Remove from handler and clean up memory
+        if (c) {
+            closeCallback(c);  // Let the user application know
+            removeClient(c);   // Remove from handler and clean up memory
+        }
     }
 }
 
