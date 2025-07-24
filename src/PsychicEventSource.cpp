@@ -126,23 +126,33 @@ void PsychicEventSource::closeCallback(PsychicClient *client) {
  * any clients for whom the send fails. It then properly removes these
  * disconnected clients after the loop, preventing a crash from using a stale handle.
  */
-void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect)
+void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect) 
 {
-  std::string ev = generateEventMessage(message, event, id, reconnect);
-  std::vector<PsychicClient*> clientsToRemove;
+    std::string ev = generateEventMessage(message, event, id, reconnect);
+    std::vector<PsychicClient *> clientsToRemove;
 
-  // First, iterate and send, collecting disconnected clients
-  for(PsychicClient *c : _clients) {
-    if (!((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str())) {
-      clientsToRemove.push_back(c);
+    // First, iterate and send, collecting disconnected clients
+    for (PsychicClient *c : _clients) {
+        // Check if c->_friend exist and right type
+        auto esc = static_cast<PsychicEventSourceClient *>(c ? c->_friend : nullptr);
+        if (!esc) {
+            // ESP_LOGW(PH_TAG, "Client 0x%p lost its EventSource handle - scheduling removal", c);
+            clientsToRemove.push_back(c);
+            continue;
+        }
+        // Send; If failed → make to delete
+        if (!esc->sendEvent(ev.c_str())) {
+            clientsToRemove.push_back(c);
+        }
     }
-  }
 
-  // Second, iterate through the disconnected clients and clean them up
-  for(PsychicClient *c : clientsToRemove) {
-    closeCallback(c); // Let the user application know
-    removeClient(c);  // Remove from handler and clean up memory
-  }
+    // Second, iterate through the disconnected clients and clean them up
+    for (PsychicClient *c : clientsToRemove) {
+        if (closeCallback)
+            closeCallback(c);  // Let the user application know
+
+        removeClient(c);  // Remove from handler and clean up memory
+    }
 }
 
 /*****************************************/
@@ -171,6 +181,10 @@ bool PsychicEventSourceClient::send(const char *message, const char *event, uint
  * This prevents a crash by detecting if the underlying socket is closed.
  */
 bool PsychicEventSourceClient::sendEvent(const char *event) {
+  if (!event) return false;
+  if (!this->server()) { 
+      return false;
+  }
   int result;
   do {
     result = httpd_socket_send(this->server(), this->socket(), event, strlen(event), 0);
