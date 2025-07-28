@@ -3,6 +3,9 @@
 
 #include "PsychicCore.h"
 #include "time.h"
+#include <string>
+
+namespace PsychicHttp {
 
 class PsychicRequest;
 
@@ -14,7 +17,7 @@ class PsychicResponse
     int _code;
     char _status[60];
     std::list<HTTPHeader> _headers;
-    String _contentType;
+    std::string _contentType;
     int64_t _contentLength;
     const char* _body;
 
@@ -28,7 +31,7 @@ class PsychicResponse
     int getCode() { return _code; }
     
     void setContentType(const char* contentType);
-    String& getContentType() { return _contentType; }
+    std::string& getContentType() { return _contentType; }
 
     void setContentLength(int64_t contentLength) { _contentLength = contentLength; }
     int64_t getContentLength(int64_t contentLength) { return _contentLength; }
@@ -74,7 +77,7 @@ class PsychicResponseDelegate
     void setCode(int code) { _response->setCode(code); }
 
     void setContentType(const char* contentType) { _response->setContentType(contentType); }
-    String& getContentType() { return _response->getContentType(); }
+    std::string& getContentType() { return _response->getContentType(); }
 
     void setContentLength(int64_t contentLength) { _response->setContentLength(contentLength); }
     int64_t getContentLength(int64_t contentLength) { return _response->getContentLength(); }
@@ -105,5 +108,7 @@ class PsychicResponseDelegate
 
     httpd_req_t* request() { return _response->request(); }
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicResponse_h

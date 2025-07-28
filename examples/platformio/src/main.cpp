@@ -21,6 +21,7 @@
 #include <PsychicHttp.h>
 #include <WiFi.h>
 #include <esp_sntp.h>
+#include "esp_littlefs.h"
 
 // #define this to enable SD card support
 #ifdef PSY_ENABLE_SDCARD
@@ -70,6 +71,7 @@
 #endif
 
 // Enter your WIFI credentials in secret.h
+static const char *TAG = "app";
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASS;
 
@@ -93,8 +95,8 @@ const char* local_hostname = "psychic";
 // #define PSY_ENABLE_SSL to enable ssl
 #ifdef PSY_ENABLE_SSL
 bool app_enable_ssl = true;
-String server_cert;
-String server_key;
+std::string server_cert;
+std::string server_key;
 #endif
 
 // our main server object
@@ -281,8 +283,8 @@ void setup()
       MDNS.addService("http", "tcp", 80);
     else
       Serial.println("Error starting mDNS");
-
-    if (!LittleFS.begin()) {
+ 
+    if(!LittleFS.begin(false, "/spiffs", 5, "spiffs")){
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
     }
@@ -358,18 +360,18 @@ void setup()
     // serve static files from LittleFS/www on / only to clients on same wifi network
     // this is where our /index.html file lives
     //  curl -i http://psychic.local/
-    server.serveStatic("/", LittleFS, "/www/")
+    server.serveStatic("/", "/littlefs/www/")
       ->setCacheControl("max-age=60")
       ->addFilter(ON_STA_FILTER);
 
     // serve static files from LittleFS/www-ap on / only to clients on SoftAP
     // this is where our /index.html file lives
-    server.serveStatic("/", LittleFS, "/www-ap/")->addFilter(ON_AP_FILTER);
+    server.serveStatic("/", "/littlefs/www-ap/")->addFilter(ON_AP_FILTER);
 
     // serve static files from LittleFS/img on /img
     // it's more efficient to serve everything from a single www directory, but this is also possible.
     //  curl -i http://psychic.local/img/request_flow.png
-    server.serveStatic("/img", LittleFS, "/img/");
+    server.serveStatic("/img", "/littlefs/img/");
 
 #ifdef PSY_ENABLE_SDCARD
     // if we detect an SD card, serve all files from sd:/ on http://psychic.local/sd
@@ -379,7 +381,7 @@ void setup()
 
     // you can also serve single files
     //  curl -i http://psychic.local/myfile.txt
-    server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
+    server.serveStatic("/myfile.txt", "/littlefs/www/custom.txt");
 
     // example callback everytime a connection is opened
     server.onOpen([](PsychicClient* client) { Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
@@ -403,7 +405,7 @@ void setup()
 
       // work with some params
       if (input.containsKey("foo")) {
-        String foo = input["foo"];
+        std::string foo = input["foo"];
         output["foo"] = foo;
       }
 
@@ -441,7 +443,7 @@ void setup()
 
       // work with some params
       if (request->hasParam("foo")) {
-        String foo = request->getParam("foo")->value();
+        std::string foo = request->getParam("foo")->value();
         output["foo"] = foo;
       }
 
@@ -543,7 +545,7 @@ void setup()
     //  curl -i -d "param1=value1&param2=value2" -X POST http://psychic.local/post
     //  curl -F "param1=value1" -F "param2=value2" -X POST http://psychic.local/post
     server.on("/post", HTTP_POST, [](PsychicRequest* request, PsychicResponse* response) {
-      String output;
+      std::string output;
       output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
       output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
@@ -556,38 +558,39 @@ void setup()
 
     // handle a very basic upload as post body
     PsychicUploadHandler* uploadHandler = new PsychicUploadHandler();
-    uploadHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
-      File file;
-      String path = "/www/" + filename;
+    uploadHandler->onUpload([](PsychicRequest* request, const std::string& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
+        // build a POSIX path under mounted littlefs
+        char path[128];
+        snprintf(path, sizeof(path), "/littlefs/www/%s", filename.c_str());
 
-      Serial.printf("Writing %d/%d bytes to: %s\n", (int)index + (int)len, request->contentLength(), path.c_str());
+        // log progress
+        ESP_LOGI(TAG, "Writing %u/%u bytes to: %s", (unsigned)(index + len), (unsigned)request->contentLength(), path);
+        if (last) {
+            ESP_LOGI(TAG, "%s finished. Total bytes: %llu", path, (unsigned long long)(index + len));
+        }
 
-      if (last)
-        Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
+        // open for write ("wb") on first chunk, append ("ab") thereafter
+        const char *mode = (index == 0) ? "wb" : "ab";
+        FILE *file = fopen(path, mode);
+        if (!file) {
+            ESP_LOGE(TAG, "Failed to open %s", path);
+            return ESP_FAIL;
+        }
 
-      // our first call?
-      if (!index)
-        file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
+        size_t written = fwrite(data, 1, len, file);
+        fclose(file);
 
-      if (!file) {
-        Serial.println("Failed to open file");
-        return ESP_FAIL;
-      }
-
-      if (!file.write(data, len)) {
-        Serial.println("Write failed");
-        return ESP_FAIL;
-      }
-
-      return ESP_OK;
+        if (written != len) {
+            ESP_LOGE(TAG, "Write failed (%u/%u)", (unsigned)written, (unsigned)len);
+            return ESP_FAIL;
+        }
+        return ESP_OK;
     });
 
     // gets called after upload has been handled
     uploadHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
-      String url = "/" + request->getFilename();
-      String output = "<a href=\"" + url + "\">" + url + "</a>";
+      std::string url = "/" + request->getFilename();
+      std::string output = "<a href=\"" + url + "\">" + url + "</a>";
 
       return response->send(output.c_str());
     });
@@ -598,43 +601,47 @@ void setup()
 
     // a little bit more complicated multipart form
     PsychicUploadHandler* multipartHandler = new PsychicUploadHandler();
-    multipartHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
-      File file;
-      String path = "/www/" + filename;
+    multipartHandler->onUpload([](PsychicRequest* request, const std::string& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
+        // build a POSIX path under mounted littlefs
+        char path[128];
+        snprintf(path, sizeof(path), "/littlefs/www/%s", filename.c_str());
 
-      // some progress over serial.
-      Serial.printf("Writing %d bytes to: %s @ index %llu\n", (int)len, path.c_str(), index);
-      if (last)
-        Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
+        ESP_LOGI(TAG, "Writing %u bytes to: %s", (unsigned)len, path);
+        if (last) {
+            ESP_LOGI(TAG, "%s finished. Total bytes: %llu", path, (unsigned long long)(index + len));
+        }
 
-      // our first call?
-      if (!index)
-        file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
+        // open with "wb" on first chunk, "ab" on subsequent
+        FILE *file = nullptr;
+        if (index == 0) {
+            file = fopen(path, "wb");
+        } else {
+            file = fopen(path, "ab");
+        }
+        if (!file) {
+            ESP_LOGE(TAG, "Failed to open %s", path);
+            return ESP_FAIL;
+        }
 
-      if (!file) {
-        Serial.println("Failed to open file");
-        return ESP_FAIL;
-      }
+        size_t written = fwrite(data, 1, len, file);
+        fclose(file);
 
-      if (!file.write(data, len)) {
-        Serial.println("Write failed");
-        return ESP_FAIL;
-      }
-
-      return ESP_OK;
+        if (written != len) {
+            ESP_LOGE(TAG, "Write failed (%u/%u)", (unsigned)written, (unsigned)len);
+            return ESP_FAIL;
+        }
+        return ESP_OK;
     });
 
     // gets called after upload has been handled
     multipartHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
-      String output;
+      std::string output;
       if (request->hasParam("file_upload")) {
         PsychicWebParameter* file = request->getParam("file_upload");
 
-        String url = "/" + file->value();
+        std::string url = "/" + file->value();
         output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
-        output += "Bytes: " + String(file->size()) + "<br/>\n";
+        output += "Bytes: " + std::to_string(file->size()) + "<br/>\n";
       }
 
       if (request->hasParam("param1"))
@@ -654,7 +661,7 @@ void setup()
     // curl -F "param1=multi" -F "param2=part" http://psychic.local/multipart-data
     PsychicUploadHandler* multipartFormHandler = new PsychicUploadHandler();
     multipartFormHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
-      String output;
+      std::string output;
       if (request->hasParam("param1"))
         output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
       if (request->hasParam("param2"))
@@ -692,7 +699,7 @@ void setup()
     // works: curl -F "secret=password" http://psychic.local/post-filter
     // 404:   curl -F "foo=bar" http://psychic.local/post-filter
     server.on("/post-filter", HTTP_POST, [](PsychicRequest* request, PsychicResponse* response) {
-            String output;
+            std::string output;
             output += "Secret: " + request->getParam("secret")->value() + "<br/>\n";
 
             return response->send(output.c_str());

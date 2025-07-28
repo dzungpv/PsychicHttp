@@ -1,4 +1,7 @@
 #include "PsychicWebSocket.h"
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 /*************************************/
 /*  PsychicWebSocketRequest      */
@@ -114,6 +117,10 @@ esp_err_t PsychicWebSocketClient::sendMessage(const char* buf)
 {
   return this->sendMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
+
+/*************************************/
+/*  PsychicWebSocketHandler   */
+/*************************************/
 
 PsychicWebSocketHandler::PsychicWebSocketHandler() : PsychicHandler(),
                                                      _onOpen(NULL),
@@ -298,3 +305,5 @@ void PsychicWebSocketHandler::sendAll(const char* buf)
 {
   this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
+
+} // namespace PsychicHttp

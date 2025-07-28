@@ -1,5 +1,9 @@
 #include "PsychicEndpoint.h"
 #include "PsychicHttpServer.h"
+#include <string>
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 PsychicEndpoint::PsychicEndpoint() : _server(NULL),
                                      _uri(""),
@@ -35,7 +39,7 @@ PsychicHandler* PsychicEndpoint::handler()
   return _handler;
 }
 
-String PsychicEndpoint::uri()
+std::string PsychicEndpoint::uri()
 {
   return _uri;
 }
@@ -138,3 +142,5 @@ esp_err_t PsychicEndpoint::process(PsychicRequest* request)
   ESP_LOGD(PH_TAG, "Endpoint %s processed %s: %s", _uri.c_str(), request->uri().c_str(), esp_err_to_name(ret));
   return ret;
 }
+
+} // namespace PsychicHttp

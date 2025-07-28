@@ -18,6 +18,8 @@ static SemaphoreHandle_t worker_ready_count;
 // Each worker has its own thread
 static TaskHandle_t worker_handles[ASYNC_WORKER_COUNT];
 
+namespace PsychicHttp {
+
 typedef esp_err_t (*httpd_req_handler_t)(httpd_req_t* req);
 
 typedef struct
@@ -33,5 +35,7 @@ void start_async_req_workers(void);
 
 esp_err_t httpd_req_async_handler_begin(httpd_req_t* r, httpd_req_t** out);
 esp_err_t httpd_req_async_handler_complete(httpd_req_t* r);
+
+} // namespace PsychicHttp
 
 #endif // async_worker_h

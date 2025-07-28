@@ -1,5 +1,7 @@
 #include "PsychicMiddlewareChain.h"
 
+namespace PsychicHttp {
+
 PsychicMiddlewareChain::~PsychicMiddlewareChain()
 {
   for (auto middleware : _middleware)
@@ -45,3 +47,5 @@ esp_err_t PsychicMiddlewareChain::runChain(PsychicRequest* request, PsychicMiddl
 
   return next();
 }
+
+} // namespace PsychicHttp

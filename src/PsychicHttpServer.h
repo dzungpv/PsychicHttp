@@ -7,6 +7,7 @@
 #include "PsychicMiddleware.h"
 #include "PsychicMiddlewareChain.h"
 #include "PsychicRewrite.h"
+#include "esp_netif.h"
 
 #ifdef PSY_ENABLE_REGEX
   #include <regex>
@@ -18,6 +19,9 @@
 
 class PsychicEndpoint;
 class PsychicHandler;
+
+namespace PsychicHttp {
+
 class PsychicStaticFileHandler;
 
 class PsychicHttpServer
@@ -29,6 +33,12 @@ class PsychicHttpServer
     std::list<PsychicClient*> _clients;
     std::list<PsychicRewrite*> _rewrites;
     std::list<PsychicRequestFilterFunction> _filters;
+
+    esp_netif_t* _netif_ap;
+    esp_netif_t* _netif_sta;
+#ifdef PSY_ENABLE_ETHERNET
+    esp_netif_t* _netif_eth;
+#endif
 
     PsychicClientCallback _onOpen = nullptr;
     PsychicClientCallback _onClose = nullptr;
@@ -43,6 +53,8 @@ class PsychicHttpServer
     bool _rewriteRequest(PsychicRequest* request);
     esp_err_t _process(PsychicRequest* request);
     bool _filter(PsychicRequest* request);
+
+    void initNetifs();
 
   public:
     PsychicHttpServer(uint16_t port = 80);
@@ -127,11 +139,13 @@ class PsychicHttpServer
     void onOpen(PsychicClientCallback handler);
     void onClose(PsychicClientCallback handler);
 
-    PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
+    PsychicStaticFileHandler* serveStatic(const char* uri, const char* path, const char* cache_control = NULL);
 };
 
-bool ON_STA_FILTER(PsychicRequest* request);
-bool ON_AP_FILTER(PsychicRequest* request);
+} // namespace PsychicHttp
+
+bool ON_STA_FILTER(PsychicHttp::PsychicRequest* request);
+bool ON_AP_FILTER(PsychicHttp::PsychicRequest* request);
 
 // URI matching functions
 bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2);

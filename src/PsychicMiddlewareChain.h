@@ -6,6 +6,8 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 
+namespace PsychicHttp {
+
 /*
  * PsychicMiddlewareChain - handle tracking and executing our chain of middleware objects
  * */
@@ -24,5 +26,7 @@ class PsychicMiddlewareChain
   protected:
     std::list<PsychicMiddleware*> _middleware;
 };
+
+} // namespace PsychicHttp
 
 #endif

@@ -23,26 +23,33 @@
   #include <Arduino.h>
 #endif
 
-#include "FS.h"
-#include "MD5Builder.h"
 #include "esp_random.h"
-#include <ArduinoJson.h>
-#include <UrlEncode.h>
-#include <esp_http_server.h>
+#ifdef ARDUINO
 #include <libb64/cencode.h>
+#include "MD5Builder.h"
+#else // ESP IDF using mbedtls for base64 and md5
+#include <mbedtls/base64.h>
+#include <mbedtls/md5.h>
+#endif
+#include <ArduinoJson.h>
+#include <esp_http_server.h>
 #include <list>
 #include <map>
+#include <string>
+#include <functional>
 
 #ifdef PSY_DEVMODE
   #include "ArduinoTrace.h"
 #endif
+
+namespace PsychicHttp {
 
 enum HTTPAuthMethod {
   BASIC_AUTH,
   DIGEST_AUTH
 };
 
-String urlDecode(const char* encoded);
+std::string urlDecode(const char* encoded);
 
 class PsychicHttpServer;
 class PsychicRequest;
@@ -63,11 +70,11 @@ typedef std::function<void(PsychicClient* client)> PsychicClientCallback;
 // callback definitions
 typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response)> PsychicHttpRequestCallback;
 typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response, JsonVariant& json)> PsychicJsonRequestCallback;
-typedef std::function<esp_err_t(PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool final)> PsychicUploadCallback;
+typedef std::function<esp_err_t(PsychicRequest* request, const std::string& filename, uint64_t index, uint8_t* data, size_t len, bool final)> PsychicUploadCallback;
 
 struct HTTPHeader {
-    String field;
-    String value;
+    std::string field;
+    std::string value;
 };
 
 class DefaultHeaders
@@ -77,7 +84,7 @@ class DefaultHeaders
   public:
     DefaultHeaders() {}
 
-    void addHeader(const String& field, const String& value)
+    void addHeader(const std::string& field, const std::string& value)
     {
       _headers.push_back({field, value});
     }
@@ -100,5 +107,7 @@ class DefaultHeaders
       return instance;
     }
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicCore_h

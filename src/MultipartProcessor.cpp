@@ -1,5 +1,10 @@
 #include "MultipartProcessor.h"
 #include "PsychicRequest.h"
+#include <string>
+#include <algorithm>
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 enum
 {
@@ -41,11 +46,17 @@ esp_err_t MultipartProcessor::process()
 
   _parsedLength = 0;
 
-  String value = _request->header("Content-Type");
-  if (value.startsWith("multipart/"))
+  std::string value = _request->header("Content-Type");
+  if (value.find("multipart/") == 0)
   {
-    _boundary = value.substring(value.indexOf('=') + 1);
-    _boundary.replace("\"", "");
+    size_t pos = value.find('=');
+    if (pos != std::string::npos) {
+      _boundary = value.substr(pos + 1);
+      // Remove quotes
+      if (_boundary.front() == '"' && _boundary.back() == '"') {
+        _boundary = _boundary.substr(1, _boundary.length() - 2);
+      }
+    }
   }
   else
   {
@@ -67,7 +78,7 @@ esp_err_t MultipartProcessor::process()
 #endif
 
     /* Receive the file part by part into a buffer */
-    if ((received = httpd_req_recv(_request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+    if ((received = httpd_req_recv(_request->request(), buf, std::min(remaining, FILE_CHUNK_SIZE))) <= 0)
     {
       /* Retry if timeout occurred */
       if (received == HTTPD_SOCK_ERR_TIMEOUT)
@@ -105,11 +116,17 @@ esp_err_t MultipartProcessor::process(const char* body)
   esp_err_t err = ESP_OK;
   _parsedLength = 0;
 
-  String value = _request->header("Content-Type");
-  if (value.startsWith("multipart/"))
+  std::string value = _request->header("Content-Type");
+  if (value.find("multipart/") == 0)
   {
-    _boundary = value.substring(value.indexOf('=') + 1);
-    _boundary.replace("\"", "");
+    size_t pos = value.find('=');
+    if (pos != std::string::npos) {
+      _boundary = value.substr(pos + 1);
+      // Remove quotes
+      if (_boundary.front() == '"' && _boundary.back() == '"') {
+        _boundary = _boundary.substr(1, _boundary.length() - 2);
+      }
+    }
   }
   else
   {
@@ -169,10 +186,10 @@ void MultipartProcessor::_parseMultipartPostByte(uint8_t data, bool last)
   if (!_parsedLength)
   {
     _multiParseState = EXPECT_BOUNDARY;
-    _temp = String();
-    _itemName = String();
-    _itemFilename = String();
-    _itemType = String();
+    _temp = std::string();
+    _itemName = std::string();
+    _itemFilename = std::string();
+    _itemType = std::string();
   }
 
   if (_multiParseState == WAIT_FOR_RETURN1)
@@ -226,42 +243,64 @@ void MultipartProcessor::_parseMultipartPostByte(uint8_t data, bool last)
     {
       if (_temp.length())
       {
-        if (_temp.length() > 12 && _temp.substring(0, 12).equalsIgnoreCase("Content-Type"))
+        if (_temp.length() > 12 && _temp.substr(0, 12) == "Content-Type")
         {
-          _itemType = _temp.substring(14);
+          _itemType = _temp.substr(14);
           _itemIsFile = true;
         }
-        else if (_temp.length() > 19 && _temp.substring(0, 19).equalsIgnoreCase("Content-Disposition"))
+        else if (_temp.length() > 19 && _temp.substr(0, 19) == "Content-Disposition")
         {
-          _temp = _temp.substring(_temp.indexOf(';') + 2);
-          while (_temp.indexOf(';') > 0)
-          {
-            String name = _temp.substring(0, _temp.indexOf('='));
-            String nameVal = _temp.substring(_temp.indexOf('=') + 2, _temp.indexOf(';') - 1);
-            if (name == "name")
+          size_t pos = _temp.find(';');
+          if (pos != std::string::npos) {
+            _temp = _temp.substr(pos + 2);
+            while (_temp.find(';') != std::string::npos)
             {
-              _itemName = nameVal;
+              size_t nameEnd = _temp.find('=');
+              size_t semicolonPos = _temp.find(';');
+              if (nameEnd != std::string::npos) {
+                std::string name = _temp.substr(0, nameEnd);
+                std::string nameVal;
+                if (semicolonPos != std::string::npos) {
+                  nameVal = _temp.substr(nameEnd + 2, semicolonPos - nameEnd - 3);
+                } else {
+                  nameVal = _temp.substr(nameEnd + 2, _temp.length() - nameEnd - 3);
+                }
+                if (name == "name")
+                {
+                  _itemName = nameVal;
+                }
+                else if (name == "filename")
+                {
+                  _itemFilename = nameVal;
+                  _itemIsFile = true;
+                }
+                if (semicolonPos != std::string::npos) {
+                  _temp = _temp.substr(semicolonPos + 2);
+                } else {
+                  break;
+                }
+              } else {
+                break;
+              }
             }
-            else if (name == "filename")
-            {
-              _itemFilename = nameVal;
-              _itemIsFile = true;
+            // Handle the last parameter
+            size_t nameEnd = _temp.find('=');
+            if (nameEnd != std::string::npos) {
+              std::string name = _temp.substr(0, nameEnd);
+              std::string nameVal = _temp.substr(nameEnd + 2, _temp.length() - nameEnd - 3);
+              if (name == "name")
+              {
+                _itemName = nameVal;
+              }
+              else if (name == "filename")
+              {
+                _itemFilename = nameVal;
+                _itemIsFile = true;
+              }
             }
-            _temp = _temp.substring(_temp.indexOf(';') + 2);
-          }
-          String name = _temp.substring(0, _temp.indexOf('='));
-          String nameVal = _temp.substring(_temp.indexOf('=') + 2, _temp.length() - 1);
-          if (name == "name")
-          {
-            _itemName = nameVal;
-          }
-          else if (name == "filename")
-          {
-            _itemFilename = nameVal;
-            _itemIsFile = true;
           }
         }
-        _temp = String();
+        _temp = std::string();
       }
       else
       {
@@ -269,7 +308,7 @@ void MultipartProcessor::_parseMultipartPostByte(uint8_t data, bool last)
         // value starts from here
         _itemSize = 0;
         _itemStartIndex = _parsedLength;
-        _itemValue = String();
+        _itemValue = std::string();
         if (_itemIsFile)
         {
           if (_itemBuffer)
@@ -424,3 +463,5 @@ void MultipartProcessor::_parseMultipartPostByte(uint8_t data, bool last)
     }
   }
 }
+
+} // namespace PsychicHttp

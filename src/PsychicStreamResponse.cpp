@@ -1,8 +1,12 @@
 #include "PsychicStreamResponse.h"
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
+#include <string>
+#include "esp_log.h"
 
-PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const String& contentType)
+namespace PsychicHttp {
+
+PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const std::string& contentType)
     : PsychicResponseDelegate(response), _buffer(NULL)
 {
 
@@ -10,7 +14,7 @@ PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const St
   addHeader("Content-Disposition", "inline");
 }
 
-PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const String& contentType, const String& name)
+PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const std::string& contentType, const std::string& name)
     : PsychicResponseDelegate(response), _buffer(NULL)
 {
 
@@ -37,7 +41,7 @@ esp_err_t PsychicStreamResponse::beginSend()
   if (!_buffer)
   {
     /* Respond with 500 Internal Server Error */
-    ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", STREAM_CHUNK_SIZE + sizeof(ChunkPrinter));
+    ESP_LOGE(PH_TAG, "Unable to allocate %d bytes to send chunk", STREAM_CHUNK_SIZE + sizeof(ChunkPrinter));
     httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
     return ESP_FAIL;
   }
@@ -80,10 +84,20 @@ size_t PsychicStreamResponse::write(const uint8_t* buffer, size_t size)
   return _buffer ? _printer->write(buffer, size) : 0;
 }
 
-size_t PsychicStreamResponse::copyFrom(Stream& stream)
-{
-  if (_buffer)
-    return _printer->copyFrom(stream);
+#ifdef ARDUINO
+size_t PsychicStreamResponse::copyFrom(Stream &stream) {
+    if (_buffer)
+        return _printer->copyFrom(stream);
 
-  return 0;
+    return 0;
 }
+#else
+size_t PsychicStreamResponse::copyFrom(FILE *stream) {
+    if (_buffer)
+        return _printer->copyFrom(stream);
+
+    return 0;
+}
+#endif
+
+} // namespace PsychicHttp

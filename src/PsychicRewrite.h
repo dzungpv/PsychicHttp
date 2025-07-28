@@ -2,6 +2,9 @@
 #define PsychicRewrite_h
 
 #include "PsychicCore.h"
+#include <string>
+
+namespace PsychicHttp {
 
 /*
  * REWRITE :: One instance can be handle any Request (done by the Server)
@@ -9,10 +12,10 @@
 
 class PsychicRewrite {
   protected:
-    String _fromPath;
-    String _toUri;
-    String _toPath;
-    String _toParams;
+    std::string _fromPath;
+    std::string _toUri;
+    std::string _toPath;
+    std::string _toParams;
     PsychicRequestFilterFunction _filter;
 
   public:
@@ -21,10 +24,12 @@ class PsychicRewrite {
 
     PsychicRewrite* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest *request) const;
-    const String& from(void) const;
-    const String& toUrl(void) const;
-    const String& params(void) const;
+    const std::string& from(void) const;
+    const std::string& toUrl(void) const;
+    const std::string& params(void) const;
     virtual bool match(PsychicRequest *request);
 };
+
+} // namespace PsychicHttp
 
 #endif

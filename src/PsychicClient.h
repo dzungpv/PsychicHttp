@@ -2,6 +2,9 @@
 #define PsychicClient_h
 
 #include "PsychicCore.h"
+#include <lwip/sockets.h>
+
+namespace PsychicHttp {
 
 /*
  * PsychicClient :: Generic wrapper around the ESP-IDF socket
@@ -30,10 +33,17 @@ class PsychicClient
     int socket();
     esp_err_t close();
 
-    IPAddress localIP();
     uint16_t localPort() const;
-    IPAddress remoteIP();
     uint16_t remotePort() const;
+#ifdef ARDUINO
+    IPAddress localIP();
+    IPAddress remoteIP();
+#else
+    ip4_addr_t localIP();
+    ip4_addr_t remoteIP();
+#endif
 };
+
+} // namespace PsychicHttp
 
 #endif

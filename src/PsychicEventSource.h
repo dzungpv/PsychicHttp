@@ -25,6 +25,8 @@
 #include "PsychicHandler.h"
 #include "PsychicResponse.h"
 
+namespace PsychicHttp {
+
 class PsychicEventSource;
 class PsychicEventSourceResponse;
 class PsychicEventSourceClient;
@@ -92,6 +94,8 @@ class PsychicEventSourceResponse : public PsychicResponseDelegate
     esp_err_t send();
 };
 
-String generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect);
+std::string generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect);
+
+} // namespace PsychicHttp
 
 #endif /* PsychicEventSource_H_ */

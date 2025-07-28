@@ -6,6 +6,8 @@
 // #include "PsychicRequest.h"
 #include "PsychicHandler.h"
 
+namespace PsychicHttp {
+
 /*
  * HANDLER :: Can be attached to any endpoint or as a generic request handler.
  */
@@ -31,5 +33,7 @@ class PsychicWebHandler : public PsychicHandler
     PsychicWebHandler* onOpen(PsychicClientCallback fn);
     PsychicWebHandler* onClose(PsychicClientCallback fn);
 };
+
+} // namespace PsychicHttp
 
 #endif

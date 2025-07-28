@@ -12,101 +12,98 @@ Written by Christopher Andrews (https://github.com/Chris--A)
 
 #include "TemplatePrinter.h"
 
-void TemplatePrinter::resetParam(bool flush)
+namespace PsychicHttp
 {
-  if (flush && _inParam)
+  void TemplatePrinter::resetParam(bool flush)
   {
-    _stream.write(_delimiter);
+    if (flush && _inParam) {
+      _stream.write(_delimiter);
 
-    if (_paramPos)
-      _stream.print(_paramBuffer);
+      if (_paramPos)
+        _stream.print(_paramBuffer);
+    }
+
+    memset(_paramBuffer, 0, sizeof(_paramBuffer));
+    _paramPos = 0;
+    _inParam = false;
   }
 
-  memset(_paramBuffer, 0, sizeof(_paramBuffer));
-  _paramPos = 0;
-  _inParam = false;
-}
-
-void TemplatePrinter::flush()
-{
-  resetParam(true);
-  _stream.flush();
-}
-
-size_t TemplatePrinter::write(uint8_t data)
-{
-
-  if (data == _delimiter)
+  void TemplatePrinter::flush()
   {
-
-    // End of parameter, send to callback
-    if (_inParam)
-    {
-
-      // On false, return the parameter place holder as is: not a parameter
-      // Bug fix: ignore parameters that are zero length.
-      if (!_paramPos || !_cb(_stream, _paramBuffer))
-      {
-        resetParam(true);
-        _stream.write(data);
-      }
-      else
-      {
-        resetParam(false);
-      }
-
-      // Start collecting parameter
-    }
-    else
-    {
-      _inParam = true;
-    }
+    resetParam(true);
+    _stream.flush();
   }
-  else
+
+  size_t TemplatePrinter::write(uint8_t data)
   {
 
-    // Are we collecting
-    if (_inParam)
-    {
+    if (data == _delimiter) {
 
-      // Is param still valid
-      if (isalnum(data) || data == '_')
-      {
+      // End of parameter, send to callback
+      if (_inParam) {
 
-        // Total param len must be 63, 1 for null.
-        if (_paramPos < sizeof(_paramBuffer) - 1)
-        {
-          _paramBuffer[_paramPos++] = data;
-
-          // Not a valid param
-        }
-        else
-        {
+        // On false, return the parameter place holder as is: not a parameter
+        // Bug fix: ignore parameters that are zero length.
+        if (!_paramPos || !_cb(_stream, _paramBuffer)) {
           resetParam(true);
+          _stream.write(data);
+        } else {
+          resetParam(false);
         }
+
+        // Start collecting parameter
+      } else {
+        _inParam = true;
       }
-      else
-      {
-        resetParam(true);
+    } else {
+
+      // Are we collecting
+      if (_inParam) {
+
+        // Is param still valid
+        if (isalnum(data) || data == '_') {
+
+          // Total param len must be 63, 1 for null.
+          if (_paramPos < sizeof(_paramBuffer) - 1) {
+            _paramBuffer[_paramPos++] = data;
+
+            // Not a valid param
+          } else {
+            resetParam(true);
+          }
+        } else {
+          resetParam(true);
+          _stream.write(data);
+        }
+
+        // Just output
+      } else {
         _stream.write(data);
       }
-
-      // Just output
     }
-    else
-    {
-      _stream.write(data);
-    }
+    return 1;
   }
-  return 1;
-}
 
-size_t TemplatePrinter::copyFrom(Stream& stream)
-{
-  size_t count = 0;
+#ifdef ARDUINO
+  size_t TemplatePrinter::copyFrom(Stream& stream)
+  {
+    size_t count = 0;
 
-  while (stream.available())
-    count += this->write(stream.read());
+    while (stream.available())
+      count += this->write(stream.read());
 
-  return count;
-}
+    return count;
+  }
+#else
+  size_t TemplatePrinter::copyFrom(FILE* stream)
+  {
+    size_t count = 0;
+    int c;
+    while ((c = fgetc(stream)) != EOF) {
+      count += this->write(static_cast<uint8_t>(c));
+    }
+    return count;
+  }
+#endif
+
+} // namespace PsychicHttp

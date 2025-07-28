@@ -30,4 +30,7 @@
   #include <ArduinoTrace.h>
 #endif
 
+// Make the PsychicHttp namespace available
+using namespace PsychicHttp;
+
 #endif /* PsychicHttp_h */

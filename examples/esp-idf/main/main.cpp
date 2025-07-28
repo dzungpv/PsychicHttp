@@ -18,7 +18,7 @@
  * Follow instructions here: https://randomnerdtutorials.com/esp32-littlefs-arduino-ide/
  **********************************************************************************************/
 
-#include "secret.h"
+#include "_secret.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
@@ -32,6 +32,8 @@
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
 #endif
+
+using namespace PsychicHttp;
 
 // Enter your WIFI credentials in secret.h
 const char* ssid = WIFI_SSID;
@@ -154,7 +156,7 @@ void setup()
     }
     MDNS.addService("http", "tcp", 80);
 
-    if (!LittleFS.begin()) {
+    if(!LittleFS.begin(false, "/spiffs", 5, "littlefs")) {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
     }

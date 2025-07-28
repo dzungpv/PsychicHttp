@@ -1,17 +1,20 @@
 #include "PsychicRewrite.h"
 #include "PsychicRequest.h"
+#include <string>
+
+namespace PsychicHttp {
 
     PsychicRewrite::PsychicRewrite(const char* from, const char* to):
 		_fromPath(from),
 		_toUri(to),
-		_toPath(String()),
-		_toParams(String()),
+		_toPath(std::string()),
+		_toParams(std::string()),
 		_filter(nullptr)
 	{
-      int index = _toUri.indexOf('?');
-      if (index > 0) {
-        _toParams = _toUri.substring(index + 1);
-        _toPath = _toUri.substring(0, index);
+      size_t index = _toUri.find('?');
+      if (index != std::string::npos) {
+        _toParams = _toUri.substr(index + 1);
+        _toPath = _toUri.substr(0, index);
       }
 	  else
 	  	_toPath = _toUri;
@@ -31,16 +34,16 @@
 		return _filter == nullptr || _filter(request);
 	}
     
-	const String& PsychicRewrite::from(void) const
+	const std::string& PsychicRewrite::from(void) const
 	{
 		return _fromPath;
 	}
-    const String& PsychicRewrite::toUrl(void) const
+    const std::string& PsychicRewrite::toUrl(void) const
 	{
 		return _toUri;
 	}
     
-	const String& PsychicRewrite::params(void) const
+	const std::string& PsychicRewrite::params(void) const
 	{
 		return _toParams;
 	}
@@ -52,3 +55,5 @@
 
 		return _fromPath == request->path();
 	}
+
+} // namespace PsychicHttp

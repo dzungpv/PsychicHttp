@@ -16,6 +16,8 @@
       #define PSY_ENABLE_SSL // you can use this define in your code to enable/disable these features
     #endif
 
+namespace PsychicHttp {
+
 class PsychicHttpsServer : public PsychicHttpServer
 {
   protected:
@@ -36,6 +38,8 @@ class PsychicHttpsServer : public PsychicHttpServer
     // Pointer to certificate data in PEM or DER format. PEM-format must have a terminating NULL-character. DER-format requires the length to be passed in certSize and keySize.
     void setCertificate(const uint8_t* cert, size_t cert_size, const uint8_t* private_key, size_t private_key_size);
 };
+
+} // namespace PsychicHttp
 
   #endif // PsychicHttpsServer_h
 

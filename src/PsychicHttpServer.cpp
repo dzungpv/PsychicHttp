@@ -5,10 +5,20 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebHandler.h"
 #include "PsychicWebSocket.h"
+#ifdef ARDUINO
 #include "WiFi.h"
+#else
+#include "esp_netif.h"
+#include "esp_wifi.h"
+#include <lwip/ip4_addr.h>
+#endif
+#include <string>
+#include "esp_log.h"
 #ifdef PSY_ENABLE_ETHERNET
   #include "ETH.h"
 #endif
+
+namespace PsychicHttp {
 
 PsychicHttpServer::PsychicHttpServer(uint16_t port)
 {
@@ -82,18 +92,65 @@ uint16_t PsychicHttpServer::getPort()
   return this->config.server_port;
 }
 
-bool PsychicHttpServer::isConnected()
+// Call this once after esp_netif_init()/esp_wifi_init():
+void PsychicHttpServer::initNetifs()
 {
+  // Grab the default netif handles created by esp_netif_init()/esp_wifi_init()
+  _netif_sta = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+  _netif_ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+#ifdef PSY_ENABLE_ETHERNET
+  _netif_eth = esp_netif_get_handle_from_ifkey("ETH_DEF");
+#endif
+}
+
+bool PsychicHttpServer::isConnected() {
+
+#ifdef ARDUINO
+
+  ESP_LOGI(PH_TAG, "This is an Arduino board");
   if (WiFi.softAPIP())
     return true;
   if (WiFi.localIP())
     return true;
 
-#ifdef PSY_ENABLE_ETHERNET
+  #ifdef PSY_ENABLE_ETHERNET
   if (ETH.localIP())
     return true;
-#endif
+  #endif
 
+#else // ARDUINO
+
+  ESP_LOGI(PH_TAG, "This is an ESP-IDF board");
+  esp_netif_ip_info_t ip;
+  if (!_netif_sta) {
+    initNetifs();
+  }
+  // Soft-AP up?
+  if (_netif_ap &&
+      esp_netif_get_ip_info(_netif_ap, &ip) == ESP_OK &&
+      ip.ip.addr != IPADDR_ANY) {
+    return true;
+  }
+
+  // Station up?
+  if (_netif_sta &&
+      esp_netif_get_ip_info(_netif_sta, &ip) == ESP_OK &&
+      ip.ip.addr != IPADDR_ANY) {
+    return true;
+  }
+
+#ifdef PSY_ENABLE_ETHERNET
+  // Ethernet up?
+  if (_netif_eth &&
+      esp_netif_get_ip_info(_netif_eth, &ip) == ESP_OK &&
+      ip.ip.addr != IPADDR_ANY) {
+    return true;
+  }
+#endif // PSY_ENABLE_ETHERNET
+
+#endif // ARDUINO
+
+  ESP_LOGE(PH_TAG, "Server start f - no network.");
   return false;
 }
 
@@ -373,7 +430,7 @@ bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
 
   // loop through our endpoints and see if anyone matches
   for (auto* endpoint : _endpoints) {
-    if (endpoint->uri().equals(uri) && method == endpoint->_method)
+    if ((endpoint->uri()== uri) && (method == endpoint->_method))
       return removeEndpoint(endpoint);
   }
 
@@ -585,9 +642,9 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   close(sockfd);
 }
 
-PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
+PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, const char* path, const char* cache_control)
 {
-  PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
+  PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, path, cache_control);
   this->addHandler(handler);
 
   return handler;
@@ -628,17 +685,7 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList()
   return _clients;
 }
 
-bool ON_STA_FILTER(PsychicRequest* request)
-{
-  return WiFi.localIP() == request->client()->localIP();
-}
-
-bool ON_AP_FILTER(PsychicRequest* request)
-{
-  return WiFi.softAPIP() == request->client()->localIP();
-}
-
-String urlDecode(const char* encoded)
+std::string urlDecode(const char* encoded)
 {
   size_t length = strlen(encoded);
   char* decoded = (char*)malloc(length + 1);
@@ -665,11 +712,61 @@ String urlDecode(const char* encoded)
 
   decoded[j] = '\0'; // Null-terminate the decoded string
 
-  String output(decoded);
+  std::string output(decoded);
   free(decoded);
 
   return output;
 }
+
+} // namespace PsychicHttp
+
+// Global filter functions
+
+#ifdef ARDUINO
+
+bool ON_STA_FILTER(PsychicHttp::PsychicRequest* request)
+{
+  return WiFi.localIP() == request->client()->localIP();
+}
+
+bool ON_AP_FILTER(PsychicHttp::PsychicRequest* request)
+{
+  return WiFi.softAPIP() == request->client()->localIP();
+}
+
+#else
+
+/* Function to get Wifi IP in AP and STA mode*/
+ip4_addr_t getWifiIp(bool apMode)
+{
+  esp_netif_ip_info_t ip_info;
+  memset(&ip_info, 0, sizeof(esp_netif_ip_info_t));
+
+  esp_netif_t* netif = esp_netif_get_handle_from_ifkey(apMode ? "WIFI_AP_DEF" : "WIFI_STA_DEF");
+  if (netif) {
+    esp_netif_get_ip_info(netif, &ip_info);
+  }
+
+  ip4_addr_t result;
+  result.addr = ip_info.ip.addr;
+  return result;
+}
+
+bool ON_STA_FILTER(PsychicHttp::PsychicRequest* request)
+{
+  ip4_addr_t sta_ip = getWifiIp(false);
+  ip4_addr_t client_ip = request->client()->localIP();
+  return ip4_addr_cmp(&sta_ip, &client_ip);
+}
+
+bool ON_AP_FILTER(PsychicHttp::PsychicRequest* request)
+{
+  ip4_addr_t ap_ip = getWifiIp(true);
+  ip4_addr_t client_ip = request->client()->localIP();
+  return ip4_addr_cmp(&ap_ip, &client_ip);
+}
+
+#endif
 
 bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
 {

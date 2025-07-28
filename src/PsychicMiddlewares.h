@@ -3,8 +3,15 @@
 
 #include "PsychicMiddleware.h"
 
-#include <Stream.h>
+#ifdef ARDUINO
+  #include <Stream.h>
+#else
+  #include "Print.h" // Using local version support IDF and C++11
+#endif
 #include <http_status.h>
+#include <string>
+
+namespace PsychicHttp {
 
 // curl-like logging middleware
 class LoggingMiddleware : public PsychicMiddleware
@@ -28,24 +35,24 @@ class AuthenticationMiddleware : public PsychicMiddleware
     AuthenticationMiddleware& setAuthMethod(HTTPAuthMethod method);
     AuthenticationMiddleware& setAuthFailureMessage(const char* message);
 
-    const String& getUsername() const { return _username; }
-    const String& getPassword() const { return _password; }
+    const std::string& getUsername() const { return _username; }
+    const std::string& getPassword() const { return _password; }
 
-    const String& getRealm() const { return _realm; }
+    const std::string& getRealm() const { return _realm; }
     HTTPAuthMethod getAuthMethod() const { return _method; }
-    const String& getAuthFailureMessage() const { return _authFailMsg; }
+    const std::string& getAuthFailureMessage() const { return _authFailMsg; }
 
     bool isAllowed(PsychicRequest* request) const;
 
     esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override;
 
   private:
-    String _username;
-    String _password;
+    std::string _username;
+    std::string _password;
 
-    String _realm;
+    std::string _realm;
     HTTPAuthMethod _method = BASIC_AUTH;
-    String _authFailMsg;
+    std::string _authFailMsg;
 };
 
 class CorsMiddleware : public PsychicMiddleware
@@ -57,9 +64,9 @@ class CorsMiddleware : public PsychicMiddleware
     CorsMiddleware& setAllowCredentials(bool credentials);
     CorsMiddleware& setMaxAge(uint32_t seconds);
 
-    const String& getOrigin() const { return _origin; }
-    const String& getMethods() const { return _methods; }
-    const String& getHeaders() const { return _headers; }
+    const std::string& getOrigin() const { return _origin; }
+    const std::string& getMethods() const { return _methods; }
+    const std::string& getHeaders() const { return _headers; }
     bool getAllowCredentials() const { return _credentials; }
     uint32_t getMaxAge() const { return _maxAge; }
 
@@ -68,11 +75,13 @@ class CorsMiddleware : public PsychicMiddleware
     esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override;
 
   private:
-    String _origin = "*";
-    String _methods = "*";
-    String _headers = "*";
+    std::string _origin = "*";
+    std::string _methods = "*";
+    std::string _headers = "*";
     bool _credentials = true;
     uint32_t _maxAge = 86400;
 };
+
+} // namespace PsychicHttp
 
 #endif

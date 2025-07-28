@@ -4,6 +4,9 @@
 #include "ChunkPrinter.h"
 #include "PsychicCore.h"
 #include "PsychicResponse.h"
+#include <string>
+
+namespace PsychicHttp {
 
 class PsychicRequest;
 
@@ -14,8 +17,8 @@ class PsychicStreamResponse : public PsychicResponseDelegate, public Print
     uint8_t* _buffer;
 
   public:
-    PsychicStreamResponse(PsychicResponse* response, const String& contentType);
-    PsychicStreamResponse(PsychicResponse* response, const String& contentType, const String& name); // Download
+    PsychicStreamResponse(PsychicResponse* response, const std::string& contentType);
+    PsychicStreamResponse(PsychicResponse* response, const std::string& contentType, const std::string& name); // Download
 
     ~PsychicStreamResponse();
 
@@ -27,9 +30,15 @@ class PsychicStreamResponse : public PsychicResponseDelegate, public Print
     size_t write(uint8_t data) override;
     size_t write(const uint8_t* buffer, size_t size) override;
 
-    size_t copyFrom(Stream& stream);
+#ifdef ARDUINO
+    size_t copyFrom(Stream &stream);
+#else
+    size_t copyFrom(FILE *stream);
+#endif
 
     using Print::write;
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicStreamResponse_h

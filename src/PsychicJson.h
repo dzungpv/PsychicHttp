@@ -26,6 +26,8 @@
 
 constexpr const char* JSON_MIMETYPE = "application/json";
 
+namespace PsychicHttp {
+
 /*
  * Json Response
  * */
@@ -86,5 +88,7 @@ class PsychicJsonHandler : public PsychicWebHandler
     void onRequest(PsychicJsonRequestCallback fn);
     virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) override;
 };
+
+} // namespace PsychicHttp
 
 #endif

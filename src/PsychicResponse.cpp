@@ -1,11 +1,17 @@
 #include "PsychicResponse.h"
 #include "PsychicRequest.h"
 #include <http_status.h>
+#include <string>
+#include <algorithm>
+#include "UrlEncode.h"
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 PsychicResponse::PsychicResponse(PsychicRequest* request) : _request(request),
                                                             _code(200),
                                                             _status(""),
-                                                            _contentType(emptyString),
+                                                            _contentType(""),
                                                             _contentLength(0),
                                                             _body("")
 {
@@ -23,7 +29,10 @@ void PsychicResponse::addHeader(const char* field, const char* value)
 {
   // erase any existing ones.
   for (auto itr = _headers.begin(); itr != _headers.end();) {
-    if (itr->field.equalsIgnoreCase(field))
+    // Case-insensitive comparison for HTTP header field names
+    if (itr->field.length() == strlen(field) && 
+        std::equal(itr->field.begin(), itr->field.end(), field,
+                   [](char a, char b) { return std::tolower(a) == std::tolower(b); }))
       itr = _headers.erase(itr);
     else
       itr++;
@@ -37,12 +46,12 @@ void PsychicResponse::setCookie(const char* name, const char* value, unsigned lo
 {
   time_t now = time(nullptr);
 
-  String output;
+  std::string output;
   output = urlEncode(name) + "=" + urlEncode(value);
 
   // if current time isn't modern, default to using max age
   if (now < 1700000000)
-    output += "; Max-Age=" + String(secondsFromNow);
+    output += "; Max-Age=" + std::to_string(secondsFromNow);
   // otherwise, set an expiration date
   else {
     time_t expirationTimestamp = now + secondsFromNow;
@@ -51,12 +60,12 @@ void PsychicResponse::setCookie(const char* name, const char* value, unsigned lo
     struct tm* tmInfo = gmtime(&expirationTimestamp);
     char expires[30];
     strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", tmInfo);
-    output += "; Expires=" + String(expires);
+    output += "; Expires=" + std::string(expires);
   }
 
   // did we get any extras?
   if (strlen(extras))
-    output += "; " + String(extras);
+    output += "; " + std::string(extras);
 
   // okay, add it in.
   addHeader("Set-Cookie", output.c_str());
@@ -162,7 +171,7 @@ esp_err_t PsychicResponse::send(const char* content)
 {
   if (!_code)
     setCode(200);
-  if (_contentType.isEmpty())
+  if (_contentType.empty())
     setContentType("text/html");
   setContent(content);
   return send();
@@ -202,3 +211,5 @@ httpd_req_t* PsychicResponse::request()
 {
   return _request->_req;
 }
+
+} // namespace PsychicHttp

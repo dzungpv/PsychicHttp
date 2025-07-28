@@ -1,4 +1,7 @@
 #include "async_worker.h"
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 bool is_on_async_worker_thread(void)
 {
@@ -19,7 +22,7 @@ esp_err_t submit_async_req(httpd_req_t* req, httpd_req_handler_t handler)
 {
   // must create a copy of the request that we own
   httpd_req_t* copy = NULL;
-  esp_err_t err = httpd_req_async_handler_begin(req, &copy);
+  esp_err_t err = PsychicHttp::httpd_req_async_handler_begin(req, &copy);
   if (err != ESP_OK)
   {
     return err;
@@ -40,7 +43,7 @@ esp_err_t submit_async_req(httpd_req_t* req, httpd_req_handler_t handler)
   if (xSemaphoreTake(worker_ready_count, ticks) == false)
   {
     ESP_LOGE(PH_TAG, "No workers are available");
-    httpd_req_async_handler_complete(copy); // cleanup
+    PsychicHttp::httpd_req_async_handler_complete(copy); // cleanup
     return ESP_FAIL;
   }
 
@@ -49,7 +52,7 @@ esp_err_t submit_async_req(httpd_req_t* req, httpd_req_handler_t handler)
   if (xQueueSend(async_req_queue, &async_req, pdMS_TO_TICKS(100)) == false)
   {
     ESP_LOGE(PH_TAG, "worker queue is full");
-    httpd_req_async_handler_complete(copy); // cleanup
+    PsychicHttp::httpd_req_async_handler_complete(copy); // cleanup
     return ESP_FAIL;
   }
 
@@ -79,7 +82,7 @@ void async_req_worker_task(void* p)
 
       // Inform the server that it can purge the socket used for
       // this request, if needed.
-      if (httpd_req_async_handler_complete(async_req.req) != ESP_OK)
+      if (PsychicHttp::httpd_req_async_handler_complete(async_req.req) != ESP_OK)
       {
         ESP_LOGE(PH_TAG, "failed to complete async req");
       }
@@ -221,3 +224,5 @@ esp_err_t httpd_req_async_handler_complete(httpd_req_t* r)
 
   return ESP_OK;
 }
+
+} // namespace PsychicHttp

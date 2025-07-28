@@ -3,6 +3,9 @@
 
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
+#include <string>
+
+namespace PsychicHttp {
 
 class PsychicEndpoint;
 class PsychicHttpServer;
@@ -22,7 +25,7 @@ class PsychicHandler
     PsychicMiddlewareChain* _chain = nullptr;
     std::list<PsychicRequestFilterFunction> _filters;
 
-    String _subprotocol;
+    std::string _subprotocol;
 
     std::list<PsychicClient*> _clients;
 
@@ -32,7 +35,7 @@ class PsychicHandler
 
     virtual bool isWebSocket() { return false; };
 
-    void setSubprotocol(const String& subprotocol);
+    void setSubprotocol(const std::string& subprotocol);
     const char* getSubprotocol() const;
 
     PsychicClient* checkForNewClient(PsychicClient* client);
@@ -64,5 +67,7 @@ class PsychicHandler
     virtual bool canHandle(PsychicRequest* request) { return true; };
     virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) { return HTTPD_404_NOT_FOUND; };
 };
+
+} // namespace PsychicHttp
 
 #endif

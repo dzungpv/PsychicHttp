@@ -1,5 +1,7 @@
 #include "PsychicHttpsServer.h"
 
+namespace PsychicHttp {
+
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
 
 PsychicHttpsServer::PsychicHttpsServer(uint16_t port) : PsychicHttpServer(port)
@@ -68,3 +70,5 @@ esp_err_t PsychicHttpsServer::_stopServer()
 }
 
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE
+
+} // namespace PsychicHttp

@@ -1,4 +1,8 @@
 #include "PsychicWebHandler.h"
+#include <string>
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 PsychicWebHandler::PsychicWebHandler() : PsychicHandler(),
                                          _requestCallback(NULL),
@@ -78,3 +82,5 @@ PsychicWebHandler* PsychicWebHandler::onClose(PsychicClientCallback fn)
   _onClose = fn;
   return this;
 }
+
+} // namespace PsychicHttp

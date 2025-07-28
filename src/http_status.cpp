@@ -1,5 +1,7 @@
 #include "http_status.h"
 
+namespace PsychicHttp {
+
 bool http_informational(int code)
 {
   return code >= 100 && code < 200;
@@ -132,7 +134,7 @@ const char* http_status_reason(int code)
     case 412:
       return "Precondition Failed";
     case 413:
-      return "Content Too Large";
+      return "Payload Too Large";
     case 414:
       return "URI Too Long";
     case 415:
@@ -146,7 +148,7 @@ const char* http_status_reason(int code)
     case 421:
       return "Misdirected Request";
     case 422:
-      return "Unprocessable Content";
+      return "Unprocessable Entity";
     case 423:
       return "Locked";
     case 424:
@@ -192,3 +194,5 @@ const char* http_status_reason(int code)
       return "Unknown";
   }
 }
+
+} // namespace PsychicHttp

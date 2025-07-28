@@ -1,4 +1,8 @@
 #include "PsychicHandler.h"
+#include <string>
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 PsychicHandler::PsychicHandler()
 {
@@ -31,7 +35,7 @@ bool PsychicHandler::filter(PsychicRequest* request)
   return true;
 }
 
-void PsychicHandler::setSubprotocol(const String& subprotocol)
+void PsychicHandler::setSubprotocol(const std::string& subprotocol)
 {
   this->_subprotocol = subprotocol;
 }
@@ -146,3 +150,5 @@ esp_err_t PsychicHandler::process(PsychicRequest* request)
     return handleRequest(request, request->response());
   }
 }
+
+} // namespace PsychicHttp

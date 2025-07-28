@@ -3,23 +3,29 @@
 
 #include "PsychicCore.h"
 #include "PsychicResponse.h"
+#include <string>
+
+namespace PsychicHttp {
 
 class PsychicRequest;
 
 class PsychicFileResponse : public PsychicResponseDelegate
 {
-    using File = fs::File;
-    using FS = fs::FS;
+    // using File = fs::File;
+    //using FS = fs::FS;
 
   protected:
-    File _content;
-    void _setContentTypeFromPath(const String& path);
+    FILE* _content;
+    void _setContentTypeFromPath(const std::string& path);
+    bool endsWith(const std::string& value, const std::string& ending);
 
   public:
-    PsychicFileResponse(PsychicResponse* response, FS& fs, const String& path, const String& contentType = String(), bool download = false);
-    PsychicFileResponse(PsychicResponse* response, File content, const String& path, const String& contentType = String(), bool download = false);
+    PsychicFileResponse(PsychicResponse* response, const std::string& path, const std::string& contentType = std::string(), bool download = false);
+    PsychicFileResponse(PsychicResponse* response, FILE* content, const std::string& path, const std::string& contentType = std::string(), bool download = false);
     ~PsychicFileResponse();
     esp_err_t send();
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicFileResponse_h

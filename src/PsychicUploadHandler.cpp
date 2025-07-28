@@ -1,4 +1,8 @@
 #include "PsychicUploadHandler.h"
+#include <string>
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 PsychicUploadHandler::PsychicUploadHandler() : PsychicWebHandler(), _uploadCallback(nullptr)
 {
@@ -58,7 +62,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest* request)
 {
   esp_err_t err = ESP_OK;
 
-  String filename = request->getFilename();
+  std::string filename = request->getFilename();
 
   /* Retrieve the pointer to scratch buffer for temporary storage */
   char* buf = (char*)malloc(FILE_CHUNK_SIZE);
@@ -77,7 +81,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest* request)
     // ESP_LOGD(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
-    if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+    if ((received = httpd_req_recv(request->request(), buf, std::min(remaining, FILE_CHUNK_SIZE))) <= 0)
     {
       /* Retry if timeout occurred */
       if (received == HTTPD_SOCK_ERR_TIMEOUT)
@@ -127,3 +131,5 @@ PsychicUploadHandler* PsychicUploadHandler::onUpload(PsychicUploadCallback fn)
   _uploadCallback = fn;
   return this;
 }
+
+} // namespace PsychicHttp

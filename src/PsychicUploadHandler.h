@@ -7,6 +7,8 @@
 #include "PsychicRequest.h"
 #include "PsychicWebHandler.h"
 
+namespace PsychicHttp {
+
 /*
  * HANDLER :: Can be attached to any endpoint or as a generic request handler.
  */
@@ -28,5 +30,7 @@ class PsychicUploadHandler : public PsychicWebHandler
 
     PsychicUploadHandler* onUpload(PsychicUploadCallback fn);
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicUploadHandler_h

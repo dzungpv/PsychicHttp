@@ -5,6 +5,8 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 
+namespace PsychicHttp {
+
 class PsychicMiddlewareChain;
 /*
  * PsychicMiddleware :: fancy callback wrapper for handling requests and responses.
@@ -33,5 +35,7 @@ class PsychicMiddlewareFunction : public PsychicMiddleware
   protected:
     PsychicMiddlewareCallback _fn;
 };
+
+} // namespace PsychicHttp
 
 #endif

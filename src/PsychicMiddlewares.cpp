@@ -1,4 +1,7 @@
 #include "PsychicMiddlewares.h"
+#include <string>
+
+namespace PsychicHttp {
 
 void LoggingMiddleware::setOutput(Print &output) {
   _out = &output;
@@ -7,14 +10,19 @@ void LoggingMiddleware::setOutput(Print &output) {
 esp_err_t LoggingMiddleware::run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next)
 {
   _out->print("* Connection from ");
+#ifdef ARDUINO
   _out->print(request->client()->remoteIP().toString());
+#else
+  ip4_addr_t remote_ip = request->client()->remoteIP();
+  _out->print(ip4addr_ntoa(&remote_ip));
+#endif
   _out->print(":");
   _out->println(request->client()->remotePort());
 
   _out->print("> ");
-  _out->print(request->methodStr());
+  _out->print(request->methodStr().c_str());
   _out->print(" ");
-  _out->print(request->uri());
+  _out->print(request->uri().c_str());
   _out->print(" ");
   _out->println(request->version());
 
@@ -50,9 +58,9 @@ esp_err_t LoggingMiddleware::run(PsychicRequest* request, PsychicResponse* respo
     while (it != response->headers().end()) {
       HTTPHeader h = *it;
       _out->print("< ");
-      _out->print(h.field);
+      _out->print(h.field.c_str());
       _out->print(": ");
-      _out->println(h.value);
+      _out->println(h.value.c_str());
       it++;
     }
 
@@ -97,7 +105,7 @@ AuthenticationMiddleware& AuthenticationMiddleware::setAuthFailureMessage(const 
 
 bool AuthenticationMiddleware::isAllowed(PsychicRequest* request) const
 {
-  if (!_username.isEmpty() && !_password.isEmpty()) {
+  if (!_username.empty() && !_password.empty()) {
     return request->authenticate(_username.c_str(), _password.c_str());
   }
 
@@ -108,7 +116,7 @@ esp_err_t AuthenticationMiddleware::run(PsychicRequest* request, PsychicResponse
 {
   bool authenticationRequired = false;
 
-  if (!_username.isEmpty() && !_password.isEmpty()) {
+  if (!_username.empty() && !_password.empty()) {
     authenticationRequired = !request->authenticate(_username.c_str(), _password.c_str());
   }
 
@@ -155,7 +163,7 @@ void CorsMiddleware::addCORSHeaders(PsychicResponse* response)
   response->addHeader("Access-Control-Allow-Methods", _methods.c_str());
   response->addHeader("Access-Control-Allow-Headers", _headers.c_str());
   response->addHeader("Access-Control-Allow-Credentials", _credentials ? "true" : "false");
-  response->addHeader("Access-Control-Max-Age", String(_maxAge).c_str());
+  response->addHeader("Access-Control-Max-Age", std::to_string(_maxAge).c_str());
 }
 
 esp_err_t CorsMiddleware::run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next)
@@ -168,3 +176,5 @@ esp_err_t CorsMiddleware::run(PsychicRequest* request, PsychicResponse* response
   }
   return next();
 }
+
+} // namespace PsychicHttp

@@ -19,7 +19,11 @@
 */
 
 #include "PsychicEventSource.h"
+#include <string>
 #include <string.h>
+#include "esp_log.h"
+
+namespace PsychicHttp {
 
 /*****************************************/
 // PsychicEventSource - Handler
@@ -121,7 +125,7 @@ void PsychicEventSource::closeCallback(PsychicClient* client)
 
 void PsychicEventSource::send(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
-  String ev = generateEventMessage(message, event, id, reconnect);
+  std::string ev = generateEventMessage(message, event, id, reconnect);
   for(PsychicClient *c : _clients) {
     if (c && c->_friend) {
       ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
@@ -144,7 +148,7 @@ PsychicEventSourceClient::~PsychicEventSourceClient()
 
 void PsychicEventSourceClient::send(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
-  String ev = generateEventMessage(message, event, id, reconnect);
+  std::string ev = generateEventMessage(message, event, id, reconnect);
   sendEvent(ev.c_str());
 }
 
@@ -245,19 +249,19 @@ esp_err_t PsychicEventSourceResponse::send()
   _response->addHeader("Connection", "keep-alive");
 
   // build our main header
-  String out = String();
-  out.concat("HTTP/1.1 200 OK\r\n");
+  std::string out = std::string();
+  out.append("HTTP/1.1 200 OK\r\n");
 
   // get our global headers out of the way first
   for (auto& header : DefaultHeaders::Instance().getHeaders())
-    out.concat(header.field + ": " + header.value + "\r\n");
+    out.append(header.field + ": " + header.value + "\r\n");
 
   // now do our individual headers
   for (auto& header : _response->headers())
-    out.concat(header.field + ": " + header.value + "\r\n");
+    out.append(header.field + ": " + header.value + "\r\n");
 
   // separator
-  out.concat("\r\n");
+  out.append("\r\n");
 
   int result;
   do {
@@ -277,34 +281,36 @@ esp_err_t PsychicEventSourceResponse::send()
 // Event Message Generator
 /*****************************************/
 
-String generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect)
+std::string generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
-  String ev = "";
+  std::string ev = std::string();
 
   if (reconnect) {
     ev += "retry: ";
-    ev += String(reconnect);
+    ev += std::to_string(reconnect);
     ev += "\r\n";
   }
 
   if (id) {
     ev += "id: ";
-    ev += String(id);
+    ev += std::to_string(id);
     ev += "\r\n";
   }
 
   if (event != NULL) {
     ev += "event: ";
-    ev += String(event);
+    ev += std::string(event);
     ev += "\r\n";
   }
 
   if (message != NULL) {
     ev += "data: ";
-    ev += String(message);
+    ev += std::string(message);
     ev += "\r\n";
   }
   ev += "\r\n";
 
   return ev;
 }
+
+} // namespace PsychicHttp

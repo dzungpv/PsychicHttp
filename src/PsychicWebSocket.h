@@ -4,6 +4,8 @@
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
 
+namespace PsychicHttp {
+
 class PsychicWebSocketRequest;
 class PsychicWebSocketClient;
 
@@ -70,5 +72,7 @@ class PsychicWebSocketHandler : public PsychicHandler
     void sendAll(httpd_ws_type_t op, const void* data, size_t len);
     void sendAll(const char* buf);
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicWebSocket_h

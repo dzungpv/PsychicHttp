@@ -1,5 +1,7 @@
 #include "PsychicJson.h"
 
+namespace PsychicHttp {
+
 #ifdef ARDUINOJSON_6_COMPATIBILITY
 PsychicJsonResponse::PsychicJsonResponse(PsychicResponse* response, bool isArray, size_t maxJsonBufferSize) : __response(response),
                                                                                                               _jsonBuffer(maxJsonBufferSize)
@@ -126,3 +128,5 @@ esp_err_t PsychicJsonHandler::handleRequest(PsychicRequest* request, PsychicResp
   } else
     return response->send(500);
 }
+
+} // namespace PsychicHttp

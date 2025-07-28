@@ -1,0 +1,25 @@
+// https://github.com/plageoj/urlencode port to using with native cpp
+#include "UrlEncode.h"
+#include <string>
+
+std::string urlEncode(const char *msg) {
+  const char *hex = "0123456789ABCDEF";
+  std::string encodedMsg = "";
+
+  while (*msg != '\0') {
+    if (
+        ('a' <= *msg && *msg <= 'z') || ('A' <= *msg && *msg <= 'Z') || ('0' <= *msg && *msg <= '9') || *msg == '-' || *msg == '_' || *msg == '.' || *msg == '~') {
+      encodedMsg += *msg;
+    } else {
+      encodedMsg += '%';
+      encodedMsg += hex[(unsigned char)*msg >> 4];
+      encodedMsg += hex[*msg & 0xf];
+    }
+    msg++;
+  }
+  return encodedMsg;
+}
+
+std::string urlEncode(const std::string& msg) {
+  return urlEncode(msg.c_str());
+}

@@ -2,6 +2,9 @@
 #define PsychicEndpoint_h
 
 #include "PsychicCore.h"
+#include <string>
+
+namespace PsychicHttp {
 
 class PsychicHandler;
 class PsychicMiddleware;
@@ -16,7 +19,7 @@ class PsychicEndpoint
 
   private:
     PsychicHttpServer* _server;
-    String _uri;
+    std::string _uri;
     int _method;
     PsychicHandler* _handler;
     httpd_uri_match_func_t _uri_match_fn = nullptr; // use this change the endpoint matching function.
@@ -42,9 +45,11 @@ class PsychicEndpoint
     PsychicEndpoint* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware* middleware);
 
-    String uri();
+    std::string uri();
 
     static esp_err_t requestCallback(httpd_req_t* req);
 };
+
+} // namespace PsychicHttp
 
 #endif // PsychicEndpoint_h
