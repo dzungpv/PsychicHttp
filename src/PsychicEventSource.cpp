@@ -195,7 +195,7 @@ bool PsychicEventSourceClient::send(const char *message, const char *event, uint
 bool PsychicEventSourceClient::sendEvent(const char *event) {
    esp_err_t err = _sendEventAsync(this->server(), this->socket(), event, strlen(event));
    return err == ESP_OK;
-  /*
+#if 0
   if (!event) return false;
   if (!this->server()) { 
       return false;
@@ -213,7 +213,7 @@ bool PsychicEventSourceClient::sendEvent(const char *event) {
     return false;
   }
   return true;
-  */
+#endif
 }
 
 /*****************************************/
