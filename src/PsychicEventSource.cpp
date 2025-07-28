@@ -193,6 +193,9 @@ bool PsychicEventSourceClient::send(const char *message, const char *event, uint
  * This prevents a crash by detecting if the underlying socket is closed.
  */
 bool PsychicEventSourceClient::sendEvent(const char *event) {
+   esp_err_t err = _sendEventAsync(this->server(), this->socket(), event, strlen(event));
+   return err == ESP_OK;
+#if 0
   if (!event) return false;
   if (!this->server()) { 
       return false;
@@ -210,6 +213,7 @@ bool PsychicEventSourceClient::sendEvent(const char *event) {
     return false;
   }
   return true;
+#endif
 }
 
 /*****************************************/
@@ -288,4 +292,84 @@ std::string generateEventMessage(const char* message, const char* event, uint32_
 
   ev += "\r\n";
   return ev;
+}
+
+// Back port V2
+
+void PsychicEventSourceClient::_sendEvent(const char *event) {
+    _sendEventAsync(this->server(), this->socket(), event, strlen(event));
+}
+
+esp_err_t PsychicEventSourceClient::_sendEventAsync(httpd_handle_t handle, int socket, const char *event, size_t len) {
+    // create the transfer object
+    async_event_transfer_t *transfer = (async_event_transfer_t *)calloc(1, sizeof(async_event_transfer_t));
+    if (transfer == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+
+    // populate it
+    transfer->arg = this;
+    transfer->callback = _sendEventSentCallback;
+    transfer->handle = handle;
+    transfer->socket = socket;
+    transfer->len = len;
+
+    // allocate for event text
+    transfer->event = (char *)malloc(len);
+    if (transfer->event == NULL) {
+        free(transfer);
+        return ESP_ERR_NO_MEM;
+    }
+
+    // copy over the event data
+    memcpy(transfer->event, event, len);
+
+    // queue it.
+    esp_err_t err = httpd_queue_work(handle, _sendEventWorkCallback, transfer);
+
+    // cleanup
+    if (err) {
+        free(transfer->event);
+        free(transfer);
+        return err;
+    }
+
+    return ESP_OK;
+}
+
+void PsychicEventSourceClient::_sendEventWorkCallback(void *arg) {
+    async_event_transfer_t *trans = (async_event_transfer_t *)arg;
+
+    // omg the error is overloaded with the number of bytes sent!
+    esp_err_t err = httpd_socket_send(trans->handle, trans->socket, trans->event, trans->len, 0);
+    if (err == trans->len)
+        err = ESP_OK;
+
+    if (trans->callback)
+        trans->callback(err, trans->socket, trans->arg);
+
+    // free our memory
+    free(trans->event);
+    free(trans);
+}
+
+void PsychicEventSourceClient::_sendEventSentCallback(esp_err_t err, int socket, void *arg) {
+    // PsychicEventSourceClient* client = (PsychicEventSourceClient*)arg;
+
+    if (err == ESP_OK)
+        return;
+    else if (err == ESP_FAIL)
+        ESP_LOGE(PH_TAG, "EventSource: send - socket error (#%d)", socket);
+    else if (err == ESP_ERR_INVALID_STATE)
+        ESP_LOGE(PH_TAG, "EventSource: Handshake was already done beforehand (#%d)", socket);
+    else if (err == ESP_ERR_INVALID_ARG)
+        ESP_LOGE(PH_TAG, "EventSource: Argument is invalid (#%d)", socket);
+    else if (err == HTTPD_SOCK_ERR_TIMEOUT)
+        ESP_LOGE(PH_TAG, "EventSource: Socket timeout (#%d)", socket);
+    else if (err == HTTPD_SOCK_ERR_INVALID)
+        ESP_LOGE(PH_TAG, "EventSource: Invalid socket (#%d)", socket);
+    else if (err == HTTPD_SOCK_ERR_FAIL)
+        ESP_LOGE(PH_TAG, "EventSource: Socket fail (#%d)", socket);
+    else
+        ESP_LOGE(PH_TAG, "EventSource: %#06x %s (#%d)", (int)err, esp_err_to_name(err), socket);
 }

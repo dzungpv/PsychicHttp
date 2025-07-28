@@ -33,6 +33,16 @@ class PsychicResponse;
 
 typedef std::function<void(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
 
+// V2 back port
+typedef struct {
+    httpd_handle_t handle;
+    int socket;
+    char* event;
+    size_t len;
+    transfer_complete_cb callback;
+    void* arg;
+} async_event_transfer_t;
+
 class PsychicEventSourceClient : public PsychicClient {
   friend PsychicEventSource;
 
@@ -46,6 +56,12 @@ class PsychicEventSourceClient : public PsychicClient {
     uint32_t lastId() const { return _lastId; }
     bool send(const char *message, const char *event=nullptr, uint32_t id=0, uint32_t reconnect=0);
     bool sendEvent(const char *event);
+
+    // V2 backport
+    void _sendEvent(const char *event);
+    esp_err_t _sendEventAsync(httpd_handle_t handle, int socket, const char *event, size_t len);
+    static void _sendEventWorkCallback(void *arg);
+    static void _sendEventSentCallback(esp_err_t err, int socket, void *arg);
 };
 
 class PsychicEventSource : public PsychicHandler {
