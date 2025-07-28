@@ -1,0 +1,31 @@
+name: ESP-IDF C++ CI
+
+on:
+  push:
+    branches:
+      - v2-dev
+  pull_request:
+    branches:
+      - v2-dev
+  workflow_dispatch:
+
+jobs:
+  build_esp_idf_example:
+    name: Build CppEspIdf example with ESP-IDF v5.4.1
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/app 
+
+      - name: Build with ESP-IDF v5.4.1
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.4.1
+          target: esp32
+          path: app/examples/CppEspIdf
+          command: |
+            apt-get update && apt-get install -y python3-venv
+            idf.py build

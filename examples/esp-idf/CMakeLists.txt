@@ -14,6 +14,10 @@ else()
   #set(HTTP_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../PsychicHttp)
 endif(DEFINED ENV{HTTP_PATH})
 
+if(${IDF_VERSION_MAJOR} LESS "5")
+  include_directories("managed_components/joltwallet__littlefs/include")
+endif()
+
 set(EXTRA_COMPONENT_DIRS ${HTTP_PATH})
 
 project(PsychicHttp_IDF)

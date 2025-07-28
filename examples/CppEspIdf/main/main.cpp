@@ -18,7 +18,7 @@
 #include <PsychicHttpsServer.h>
 #endif
 #include "lwip/ip_addr.h"  // for IPSTR/IP2STR
-#include "_secret.h"                // #define WIFI_SSID, WIFI_PASS here
+#include "secret.h"                // #define WIFI_SSID, WIFI_PASS here
 
 #ifndef WIFI_SSID
   #error "You must define WIFI_SSID and WIFI_PASS in secret.h"

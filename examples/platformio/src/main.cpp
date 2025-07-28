@@ -95,8 +95,8 @@ const char* local_hostname = "psychic";
 // #define PSY_ENABLE_SSL to enable ssl
 #ifdef PSY_ENABLE_SSL
 bool app_enable_ssl = true;
-std::string server_cert;
-std::string server_key;
+String server_cert;
+String server_key;
 #endif
 
 // our main server object
@@ -325,7 +325,7 @@ void setup()
       PsychicHttpServer* redirectServer = new PsychicHttpServer();
       redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
       redirectServer->onNotFound([](PsychicRequest* request, PsychicResponse* response) {
-        String url = "https://" + request->host() + request->url();
+        String url = "https://" + String(request->host().c_str()) + String(request->url().c_str());
         return response->redirect(url.c_str()); });
     }
 #endif
@@ -376,7 +376,7 @@ void setup()
 #ifdef PSY_ENABLE_SDCARD
     // if we detect an SD card, serve all files from sd:/ on http://psychic.local/sd
     if (setupSDCard())
-      server.serveStatic("/sd", SD, "/");
+      server.serveStatic("/sd", "sd/");
 #endif
 
     // you can also serve single files
@@ -478,10 +478,10 @@ void setup()
             // look up our regex matches
             std::smatch matches;
             if (request->getRegexMatches(matches)) {
-              String output;
-              output += "Matches: " + String(matches.size()) + "<br/>\n";
-              output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
-              output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
+              std::string output;
+              output += "Matches: " + std::to_string(matches.size()) + "<br/>\n";
+              output += "Matched URI: " + std::string(matches.str(0).c_str()) + "<br/>\n";
+              output += "Match 1: " + std::string(matches.str(1).c_str()) + "<br/>\n";
 
               return response->send(output.c_str());
             } else
