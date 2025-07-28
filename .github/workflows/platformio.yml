@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
         - example: platformio
-          board: default
+          board: esp32dev
 
     runs-on: ubuntu-latest
     name: Build ${{ matrix.example }}-${{ matrix.board }}
@@ -24,22 +24,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-pio
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
       - name: Install Platform IO
-        run:
-          |
-          pip install -U platformio
-          platformio update
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
 
-      # - name: Install Checked out PsychicHttp
-      #   run:
-      #     pio lib -g install $GITHUB_WORKSPACE
+      - name: Install Checked out PsychicHttp
+        run: pio lib -g install -f $GITHUB_WORKSPACE
 
       - name: Build example 
         run:
           |
           cd examples/${{ matrix.example }}
           cp src/secret.h src/_secret.h
-          pio run -e ${{ matrix.board }}
+          PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/53.03.10-rc1/platform-espressif32.zip" pio run -e c
+         # pio run -e ${{ matrix.board }}
+
+      #- run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/53.03.10-rc1/platform-espressif32.zip" pio run -e ci    
