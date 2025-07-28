@@ -128,7 +128,7 @@ void start_async_req_workers(void)
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 /* Calculate the maximum size needed for the scratch buffer */
-#define HTTPD_SCRATCH_BUF  MAX(HTTPD_MAX_REQ_HDR_LEN, HTTPD_MAX_URI_LEN)
+#define HTTPD_SCRATCH_BUF  MAX(CONFIG_HTTPD_MAX_REQ_HDR_LEN, CONFIG_HTTPD_MAX_URI_LEN)
 
 /**
  * @brief   Auxiliary data structure for use during reception and processing
