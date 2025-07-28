@@ -50,7 +50,7 @@ jobs:
           |
           cd examples/${{ matrix.example }}
           cp src/secret.h src/_secret.h
-          PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/53.03.10-rc1/platform-espressif32.zip" pio run -e c
+          PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/53.03.10-rc1/platform-espressif32.zip" pio run -e ci
          # pio run -e ${{ matrix.board }}
 
       #- run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/53.03.10-rc1/platform-espressif32.zip" pio run -e ci    
